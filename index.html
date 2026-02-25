@@ -20,7 +20,6 @@
         <!-- Date Marker -->
         <div class="date-marker">
             <div class="date-circle">17th APRIL</div>
-            <div class="transport-info">Transport has been pre-organised to take us to each destination</div>
         </div>
 
         <!-- First Timeline Item - The House -->
@@ -32,14 +31,22 @@
             </div>
             <div class="timeline-line"></div>
             <div class="timeline-image right">
-                <img src="images/house.jpg" alt="The House">
+                <div class="slideshow">
+                    <img src="images/house.jpg" alt="The House" class="slide active">
+                    <img src="images/kitchen" alt="Kitchen" class="slide">
+                    <img src="images/cbar" alt="Bar" class="slide">
+                </div>
             </div>
         </div>
 
         <!-- Second Timeline Item - Poker Game -->
         <div class="timeline-item">
             <div class="timeline-image left">
-                <img src="images/poker2.JPG" alt="Poker Game">
+                <div class="slideshow">
+                    <img src="images/poker2.JPG" alt="Poker Game" class="slide active">
+                    <img src="images/pes.JPG" alt="Gaming" class="slide">
+                    <img src="images/house2.jpg" alt="House" class="slide">
+                </div>
             </div>
             <div class="timeline-line"></div>
             <div class="timeline-content right">
@@ -51,6 +58,7 @@
         <!-- Date Marker - 18th April -->
         <div class="date-marker">
             <div class="date-circle">18th APRIL</div>
+            <div class="transport-info">Transport has been pre-organised to take us to each destination</div>
         </div>
 
         <!-- Clay Pigeon Shooting -->
@@ -61,14 +69,22 @@
             </div>
             <div class="timeline-line"></div>
             <div class="timeline-image right">
-                <img src="images/shooting.JPG" alt="Clay Pigeon Shooting">
+                <div class="slideshow">
+                    <img src="images/shooting.JPG" alt="Clay Pigeon Shooting" class="slide active">
+                    <img src="images/shoot.jpg" alt="Shooting" class="slide">
+                    <img src="images/cannon.JPG" alt="Cannon" class="slide">
+                </div>
             </div>
         </div>
 
         <!-- Pub Lunch -->
         <div class="timeline-item">
             <div class="timeline-image left">
-                <img src="images/inn.jpg" alt="The Farmers Boy Inn">
+                <div class="slideshow">
+                    <img src="images/inn.jpg" alt="The Farmers Boy Inn" class="slide active">
+                    <img src="images/pub.JPG" alt="Pub" class="slide">
+                    <img src="images/pub2.webp" alt="Pub Interior" class="slide">
+                </div>
             </div>
             <div class="timeline-line"></div>
             <div class="timeline-content right">
@@ -85,14 +101,22 @@
             </div>
             <div class="timeline-line"></div>
             <div class="timeline-image right">
-                <img src="images/golf.JPG" alt="Pitch and Putt">
+                <div class="slideshow">
+                    <img src="images/golf.JPG" alt="Pitch and Putt" class="slide active">
+                    <img src="images/golf2.jpg" alt="Golf Course" class="slide">
+                    <img src="images/face.JPG" alt="Golf" class="slide">
+                </div>
             </div>
         </div>
 
         <!-- BBQ -->
         <div class="timeline-item">
             <div class="timeline-image left">
-                <img src="images/wine.JPG" alt="BBQ">
+                <div class="slideshow">
+                    <img src="images/wine.JPG" alt="BBQ" class="slide active">
+                    <img src="images/bbq.JPG" alt="BBQ" class="slide">
+                    <img src="images/shake.jpg" alt="Drinks" class="slide">
+                </div>
             </div>
             <div class="timeline-line"></div>
             <div class="timeline-content right">
@@ -102,5 +126,26 @@
         </div>
 
     </section>
+
+    <script>
+        // Slideshow functionality
+        function initSlideshows() {
+            const slideshows = document.querySelectorAll('.slideshow');
+            
+            slideshows.forEach(slideshow => {
+                const slides = slideshow.querySelectorAll('.slide');
+                let currentSlide = 0;
+                
+                setInterval(() => {
+                    slides[currentSlide].classList.remove('active');
+                    currentSlide = (currentSlide + 1) % slides.length;
+                    slides[currentSlide].classList.add('active');
+                }, 5000); // Change every 5 seconds
+            });
+        }
+
+        // Initialize slideshows when page loads
+        document.addEventListener('DOMContentLoaded', initSlideshows);
+    </script>
 </body>
 </html>

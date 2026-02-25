@@ -179,26 +179,51 @@ body {
 }
 
 /* Timeline Images */
-.timeline-image img {
+.timeline-image {
+    position: relative;
+}
+
+.slideshow {
+    position: relative;
     width: 100%;
     max-width: 500px;
     height: 350px;
-    object-fit: cover;
     border-radius: 10px;
+    overflow: hidden;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
 
+.slideshow .slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 1s ease-in-out;
+}
+
+.slideshow .slide.active {
+    opacity: 1;
+}
+
 /* Special handling for portrait images */
-.timeline-image img[src*="poker"] {
+.slideshow .slide[src*="poker"],
+.slideshow .slide[src*="pes"],
+.slideshow .slide[src*="face"],
+.slideshow .slide[src*="shake"],
+.slideshow .slide[src*="pub.JPG"],
+.slideshow .slide[src*="bbq"] {
     object-fit: contain;
     background-color: #f5f5f5;
 }
 
-.timeline-image.right img {
+.timeline-image.right .slideshow {
     float: left;
 }
 
-.timeline-image.left img {
+.timeline-image.left .slideshow {
     float: right;
 }
 
