@@ -84,6 +84,10 @@ body {
     text-align: center;
     margin-bottom: 40px;
     z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
 }
 
 .date-circle {
@@ -102,7 +106,6 @@ body {
 /* Transport info bubble */
 .transport-info {
     display: inline-block;
-    margin-top: 20px;
     padding: 15px 30px;
     background-color: #f8f9fa;
     border: 2px solid #2c3e50;
@@ -201,22 +204,44 @@ body {
     height: 100%;
     object-fit: cover;
     opacity: 0;
-    transition: opacity 1s ease-in-out;
+    transition: opacity 0.3s ease-in-out;
+    object-position: center 30%; /* Focus on faces */
 }
 
 .slideshow .slide.active {
     opacity: 1;
 }
 
-/* Special handling for portrait images */
-.slideshow .slide[src*="poker"],
-.slideshow .slide[src*="pes"],
-.slideshow .slide[src*="face"],
-.slideshow .slide[src*="shake"],
-.slideshow .slide[src*="pub.JPG"],
-.slideshow .slide[src*="bbq"] {
-    object-fit: contain;
-    background-color: #f5f5f5;
+/* Navigation arrows */
+.slideshow-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(44, 62, 80, 0.6);
+    color: white;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: background-color 0.3s ease;
+}
+
+.slideshow-arrow:hover {
+    background-color: rgba(44, 62, 80, 0.9);
+}
+
+.slideshow-arrow.prev {
+    left: 10px;
+}
+
+.slideshow-arrow.next {
+    right: 10px;
 }
 
 .timeline-image.right .slideshow {
@@ -258,9 +283,10 @@ body {
         display: none;
     }
 
-    .timeline-image img {
+    .timeline-image .slideshow {
         max-width: 100%;
         float: none !important;
+        margin: 0 auto;
     }
 
     .date-circle {

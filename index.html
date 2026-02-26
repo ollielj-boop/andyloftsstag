@@ -31,10 +31,12 @@
             </div>
             <div class="timeline-line"></div>
             <div class="timeline-image right">
-                <div class="slideshow">
+                <div class="slideshow" data-slideshow="house">
                     <img src="images/house.jpg" alt="The House" class="slide active">
                     <img src="images/kitchen" alt="Kitchen" class="slide">
                     <img src="images/cbar" alt="Bar" class="slide">
+                    <button class="slideshow-arrow prev" onclick="changeSlide('house', -1)">‹</button>
+                    <button class="slideshow-arrow next" onclick="changeSlide('house', 1)">›</button>
                 </div>
             </div>
         </div>
@@ -42,10 +44,12 @@
         <!-- Second Timeline Item - Poker Game -->
         <div class="timeline-item">
             <div class="timeline-image left">
-                <div class="slideshow">
+                <div class="slideshow" data-slideshow="poker">
                     <img src="images/poker2.JPG" alt="Poker Game" class="slide active">
                     <img src="images/pes.JPG" alt="Gaming" class="slide">
                     <img src="images/house2.jpg" alt="House" class="slide">
+                    <button class="slideshow-arrow prev" onclick="changeSlide('poker', -1)">‹</button>
+                    <button class="slideshow-arrow next" onclick="changeSlide('poker', 1)">›</button>
                 </div>
             </div>
             <div class="timeline-line"></div>
@@ -69,10 +73,12 @@
             </div>
             <div class="timeline-line"></div>
             <div class="timeline-image right">
-                <div class="slideshow">
+                <div class="slideshow" data-slideshow="shooting">
                     <img src="images/shooting.JPG" alt="Clay Pigeon Shooting" class="slide active">
                     <img src="images/shoot.jpg" alt="Shooting" class="slide">
                     <img src="images/cannon.JPG" alt="Cannon" class="slide">
+                    <button class="slideshow-arrow prev" onclick="changeSlide('shooting', -1)">‹</button>
+                    <button class="slideshow-arrow next" onclick="changeSlide('shooting', 1)">›</button>
                 </div>
             </div>
         </div>
@@ -80,10 +86,12 @@
         <!-- Pub Lunch -->
         <div class="timeline-item">
             <div class="timeline-image left">
-                <div class="slideshow">
+                <div class="slideshow" data-slideshow="pub">
                     <img src="images/inn.jpg" alt="The Farmers Boy Inn" class="slide active">
                     <img src="images/pub.JPG" alt="Pub" class="slide">
                     <img src="images/pub2.webp" alt="Pub Interior" class="slide">
+                    <button class="slideshow-arrow prev" onclick="changeSlide('pub', -1)">‹</button>
+                    <button class="slideshow-arrow next" onclick="changeSlide('pub', 1)">›</button>
                 </div>
             </div>
             <div class="timeline-line"></div>
@@ -101,10 +109,12 @@
             </div>
             <div class="timeline-line"></div>
             <div class="timeline-image right">
-                <div class="slideshow">
+                <div class="slideshow" data-slideshow="golf">
                     <img src="images/golf.JPG" alt="Pitch and Putt" class="slide active">
                     <img src="images/golf2.jpg" alt="Golf Course" class="slide">
                     <img src="images/face.JPG" alt="Golf" class="slide">
+                    <button class="slideshow-arrow prev" onclick="changeSlide('golf', -1)">‹</button>
+                    <button class="slideshow-arrow next" onclick="changeSlide('golf', 1)">›</button>
                 </div>
             </div>
         </div>
@@ -112,10 +122,12 @@
         <!-- BBQ -->
         <div class="timeline-item">
             <div class="timeline-image left">
-                <div class="slideshow">
+                <div class="slideshow" data-slideshow="bbq">
                     <img src="images/wine.JPG" alt="BBQ" class="slide active">
                     <img src="images/bbq.JPG" alt="BBQ" class="slide">
                     <img src="images/shake.jpg" alt="Drinks" class="slide">
+                    <button class="slideshow-arrow prev" onclick="changeSlide('bbq', -1)">‹</button>
+                    <button class="slideshow-arrow next" onclick="changeSlide('bbq', 1)">›</button>
                 </div>
             </div>
             <div class="timeline-line"></div>
@@ -128,24 +140,33 @@
     </section>
 
     <script>
-        // Slideshow functionality
-        function initSlideshows() {
-            const slideshows = document.querySelectorAll('.slideshow');
-            
-            slideshows.forEach(slideshow => {
-                const slides = slideshow.querySelectorAll('.slide');
-                let currentSlide = 0;
-                
-                setInterval(() => {
-                    slides[currentSlide].classList.remove('active');
-                    currentSlide = (currentSlide + 1) % slides.length;
-                    slides[currentSlide].classList.add('active');
-                }, 5000); // Change every 5 seconds
-            });
-        }
+        // Track current slide for each slideshow
+        const slideshowStates = {};
 
-        // Initialize slideshows when page loads
-        document.addEventListener('DOMContentLoaded', initSlideshows);
+        // Initialize slideshow states
+        document.querySelectorAll('.slideshow').forEach(slideshow => {
+            const name = slideshow.getAttribute('data-slideshow');
+            const slides = slideshow.querySelectorAll('.slide');
+            slideshowStates[name] = {
+                currentIndex: 0,
+                totalSlides: slides.length
+            };
+        });
+
+        function changeSlide(slideshowName, direction) {
+            const slideshow = document.querySelector(`[data-slideshow="${slideshowName}"]`);
+            const slides = slideshow.querySelectorAll('.slide');
+            const state = slideshowStates[slideshowName];
+            
+            // Remove active class from current slide
+            slides[state.currentIndex].classList.remove('active');
+            
+            // Calculate new index
+            state.currentIndex = (state.currentIndex + direction + state.totalSlides) % state.totalSlides;
+            
+            // Add active class to new slide
+            slides[state.currentIndex].classList.add('active');
+        }
     </script>
 </body>
 </html>
