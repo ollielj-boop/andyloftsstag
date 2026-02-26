@@ -63,7 +63,7 @@ body::before {
 .timeline-container {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 80px 40px 200px 40px;
+    padding: 80px 40px 400px 40px;
     position: relative;
     background-color: transparent;
 }
@@ -182,6 +182,23 @@ body::before {
     font-weight: bold;
     color: #2c3e50;
     margin-top: 15px;
+    font-style: italic;
+    font-size: 19px;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 8px 12px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.timeline-content .postcode {
+    color: #2c3e50;
+    text-decoration: underline;
+    font-weight: bold;
+    transition: opacity 0.3s ease;
+}
+
+.timeline-content .postcode:hover {
+    opacity: 0.6;
 }
 
 /* Timeline Images */
@@ -258,11 +275,10 @@ body::before {
 /* Sad Man Rising Animation */
 .sad-man {
     position: fixed;
-    bottom: -400px;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 300px;
-    height: 400px;
+    bottom: -500px;
+    right: 50px;
+    width: 250px;
+    height: 500px;
     z-index: 1000;
     transition: bottom 1s ease-out;
 }
@@ -275,14 +291,18 @@ body::before {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    object-position: center 20%;
-    clip-path: ellipse(45% 50% at 50% 30%);
+    object-position: center 15%;
+    border-radius: 50% 50% 0 0;
 }
 
 /* Responsive */
 @media (max-width: 768px) {
     .hero-title {
         font-size: 42px;
+    }
+
+    .timeline-container {
+        padding: 80px 20px 300px 20px;
     }
 
     .timeline-container::after {
@@ -300,20 +320,34 @@ body::before {
     .timeline-content {
         order: 1;
         text-align: left !important;
+        padding: 10px;
     }
 
     .timeline-image {
         order: 2;
+        width: 100%;
     }
 
     .timeline-line {
         display: none;
     }
 
+    /* Fix slideshows on mobile */
     .timeline-image .slideshow {
         max-width: 100%;
+        width: 100%;
         float: none !important;
         margin: 0 auto;
+    }
+
+    /* Fix single images on mobile */
+    .timeline-image img:not(.slide) {
+        width: 100%;
+        max-width: 100%;
+        height: 350px;
+        object-fit: cover;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
     }
 
     .date-circle {
@@ -324,5 +358,11 @@ body::before {
     .transport-info {
         font-size: 14px;
         padding: 12px 24px;
+    }
+
+    .sad-man {
+        right: 20px;
+        width: 180px;
+        height: 400px;
     }
 }
