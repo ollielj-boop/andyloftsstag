@@ -33,6 +33,9 @@
             <div class="timeline-image right">
                 <div class="slideshow" data-slideshow="house">
                     <img src="images/house.jpg" alt="The House" class="slide active">
+                    <img src="images/mill1.webp" alt="Mill Interior" class="slide">
+                    <img src="images/mill2.webp" alt="Mill Dining" class="slide">
+                    <img src="images/mill3.webp" alt="Mill Living" class="slide">
                     <img src="images/kitchen" alt="Kitchen" class="slide">
                     <img src="images/cbar" alt="Bar" class="slide">
                     <button class="slideshow-arrow prev" onclick="changeSlide('house', -1)">‹</button>
@@ -124,6 +127,7 @@
             <div class="timeline-image left">
                 <div class="slideshow" data-slideshow="bbq">
                     <img src="images/wine.JPG" alt="BBQ" class="slide active">
+                    <img src="images/steak.jpg" alt="Steak" class="slide">
                     <img src="images/bbq.JPG" alt="BBQ" class="slide">
                     <img src="images/shake.jpg" alt="Drinks" class="slide">
                     <button class="slideshow-arrow prev" onclick="changeSlide('bbq', -1)">‹</button>
@@ -137,7 +141,18 @@
             </div>
         </div>
 
+        <!-- Date Marker - 19th April -->
+        <div class="date-marker">
+            <div class="date-circle">19th APRIL</div>
+            <div class="transport-info">Leave the house by 11:30am to make our way to Gloucester for lunch</div>
+        </div>
+
     </section>
+
+    <!-- Sad Man Rising from Bottom -->
+    <div class="sad-man" id="sadMan">
+        <img src="images/sad.JPG" alt="Sad Face">
+    </div>
 
     <script>
         // Track current slide for each slideshow
@@ -167,6 +182,26 @@
             // Add active class to new slide
             slides[state.currentIndex].classList.add('active');
         }
+
+        // Sad man rising animation on scroll
+        let sadManTriggered = false;
+        
+        window.addEventListener('scroll', () => {
+            const scrollPosition = window.scrollY + window.innerHeight;
+            const pageHeight = document.documentElement.scrollHeight;
+            
+            // Trigger when user scrolls to bottom 20% of page
+            if (scrollPosition >= pageHeight - 200 && !sadManTriggered) {
+                document.getElementById('sadMan').classList.add('rise');
+                sadManTriggered = true;
+            }
+            
+            // Reset when scrolling back up
+            if (scrollPosition < pageHeight - 400) {
+                document.getElementById('sadMan').classList.remove('rise');
+                sadManTriggered = false;
+            }
+        });
     </script>
 </body>
 </html>
