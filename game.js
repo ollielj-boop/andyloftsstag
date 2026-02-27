@@ -53,12 +53,12 @@ function launchClay() {
     const angleVariation = 15 + Math.random() * 15; // 15-30 degrees
     
     // Starting position (bottom left)
-    const startX = -50;
-    const startY = window.innerHeight + 50;
+    const startX = -100;
+    const startY = window.innerHeight + 100;
     
     // Calculate trajectory
-    const horizontalDistance = window.innerWidth + 100;
-    const peakHeight = window.innerHeight * 0.3; // Peak at 30% of screen height
+    const horizontalDistance = window.innerWidth + 200;
+    const peakHeight = window.innerHeight * 0.35; // Peak at 35% of screen height
     
     clay.style.left = startX + 'px';
     clay.style.bottom = '0px';
@@ -68,7 +68,7 @@ function launchClay() {
     let scale = 1;
     let isDestroyed = false;
 
-    // Click handler for shooting
+    // Click handler for shooting with larger hit detection
     clay.addEventListener('click', (e) => {
         if (!isDestroyed) {
             e.stopPropagation();
@@ -78,7 +78,7 @@ function launchClay() {
     });
 
     // Animation loop
-    const duration = 3000; // 3 seconds flight time
+    const duration = 5000; // 5 seconds flight time (slower)
     const startTime = Date.now();
 
     function animate() {
@@ -92,15 +92,17 @@ function launchClay() {
             return;
         }
 
-        // Parabolic trajectory
+        // Parabolic trajectory with earlier fall
         const x = startX + (horizontalDistance * progress);
-        const y = startY - (Math.sin(progress * Math.PI) * peakHeight * 2);
+        // Modified trajectory to fall earlier
+        const arcProgress = progress < 0.5 ? progress * 2 : 1 + (progress - 0.5) * 3;
+        const y = startY - (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight * 2);
 
-        // Size decreases as it goes higher and farther
-        scale = 1 - (progress * 0.5); // Shrinks to 50% of original size
+        // Size decreases more dramatically (starts at 150px, ends much smaller)
+        scale = 1 - (progress * 0.85); // Shrinks to 15% of original size
         
-        // Rotation
-        rotation += 3;
+        // Slower rotation
+        rotation += 2;
 
         clay.style.left = x + 'px';
         clay.style.bottom = (window.innerHeight - y) + 'px';
