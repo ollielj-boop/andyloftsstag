@@ -303,25 +303,7 @@ body::before {
 .sad-man img {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: center 8%;
-    /* Detailed polygon crop around head and shoulders */
-    clip-path: polygon(
-        20% 0%,    /* top left of head */
-        80% 0%,    /* top right of head */
-        95% 15%,   /* right side of head */
-        95% 35%,   /* right shoulder */
-        85% 50%,   /* right arm */
-        80% 70%,   /* right torso */
-        75% 85%,   /* right hip */
-        60% 100%,  /* bottom right */
-        40% 100%,  /* bottom left */
-        25% 85%,   /* left hip */
-        20% 70%,   /* left torso */
-        15% 50%,   /* left arm */
-        5% 35%,    /* left shoulder */
-        5% 15%     /* left side of head */
-    );
+    object-fit: contain;
 }
 
 /* Responsive */
