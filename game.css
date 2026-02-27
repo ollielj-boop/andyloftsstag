@@ -52,23 +52,24 @@ body {
 /* Cool Guy Rising */
 .cool-guy {
     position: fixed;
-    bottom: -600px;
+    bottom: 0;
     right: 0;
     width: 300px;
     height: 600px;
     z-index: 50;
-    transition: bottom 2s ease-out;
+    transform: translateY(100%);
+    transition: transform 2s ease-out;
 }
 
 .cool-guy.rise {
-    bottom: 0;
+    transform: translateY(0);
 }
 
 .cool-guy img {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    background: transparent;
+    display: block;
 }
 
 /* Typing Text */
@@ -95,8 +96,8 @@ body {
 /* Clay Pigeon */
 .clay {
     position: absolute;
-    width: 150px;
-    height: 150px;
+    width: 200px;
+    height: 200px;
     cursor: crosshair;
     z-index: 40;
     transition: all 0.1s ease;
@@ -110,7 +111,7 @@ body {
     height: 100%;
     object-fit: contain;
     pointer-events: none;
-    background: transparent;
+    display: block;
 }
 
 .clay:hover {
@@ -131,7 +132,7 @@ body {
     height: 100%;
     object-fit: contain;
     opacity: 0.8;
-    background: transparent;
+    display: block;
 }
 
 /* Mobile adjustments */
@@ -152,7 +153,13 @@ body {
     }
 
     .clay {
-        width: 120px;
-        height: 120px;
+        width: 150px;
+        height: 150px;
+    }
+
+    .sad-man {
+        right: 0;
+        width: 200px;
+        height: 450px;
     }
 }

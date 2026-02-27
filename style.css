@@ -288,23 +288,24 @@ body::before {
 /* Sad Man Rising Animation */
 .sad-man {
     position: fixed;
-    bottom: -550px;
+    bottom: 0;
     right: 0;
     width: 280px;
     height: 550px;
     z-index: 1000;
-    transition: bottom 1s ease-out;
+    transform: translateY(100%);
+    transition: transform 1s ease-out;
 }
 
 .sad-man.rise {
-    bottom: 0;
+    transform: translateY(0);
 }
 
 .sad-man img {
     width: 100%;
     height: 100%;
     object-fit: contain;
-    background: transparent;
+    display: block;
 }
 
 /* Responsive */
@@ -376,6 +377,5 @@ body::before {
         right: 0;
         width: 200px;
         height: 450px;
-        bottom: -450px;
     }
 }
