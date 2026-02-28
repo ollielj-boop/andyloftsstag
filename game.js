@@ -39,6 +39,16 @@ function launchClayPigeons() {
     }, 2000); // Launch every 2 seconds
 }
 
+// Clay pigeon launching
+let clayCount = 0;
+
+function launchClayPigeons() {
+    setInterval(() => {
+        launchClay();
+        clayCount++;
+    }, 2000); // Launch every 2 seconds
+}
+
 function launchClay() {
     const clay = document.createElement('div');
     clay.className = 'clay';
@@ -49,21 +59,31 @@ function launchClay() {
     
     document.getElementById('clayContainer').appendChild(clay);
 
-    // Random starting angle variation (10-30 degrees from bottom left)
-    const angleVariation = 15 + Math.random() * 15; // 15-30 degrees
+    // Alternate sides after 5 clays
+    const fromRight = clayCount >= 5 && (clayCount - 5) % 10 >= 5;
     
-    // Starting position (bottom left)
-    const startX = -100;
-    const startY = window.innerHeight + 100;
+    let startX, startY, horizontalDistance, direction;
     
-    // Calculate trajectory
-    const horizontalDistance = window.innerWidth + 200;
-    const peakHeight = window.innerHeight * 0.35; // Peak at 35% of screen height
+    if (fromRight) {
+        // Launch from right side (above cool guy)
+        startX = window.innerWidth + 100;
+        startY = window.innerHeight + 100;
+        horizontalDistance = -(window.innerWidth + 200);
+        direction = -1;
+    } else {
+        // Launch from left side
+        startX = -100;
+        startY = window.innerHeight + 100;
+        horizontalDistance = window.innerWidth + 200;
+        direction = 1;
+    }
+    
+    // Calculate trajectory - higher peak
+    const peakHeight = window.innerHeight * 0.45; // Peak at 45% of screen height (higher)
     
     clay.style.left = startX + 'px';
     clay.style.bottom = '0px';
     
-    let time = 0;
     let rotation = 0;
     let scale = 1;
     let isDestroyed = false;
@@ -77,41 +97,44 @@ function launchClay() {
         }
     });
 
-    // Animation loop
-    const duration = 5000; // 5 seconds flight time (slower)
+    // Animation loop - slightly faster for right-side launches
+    const duration = fromRight ? 4500 : 5000;
     const startTime = Date.now();
+    const delay = fromRight ? 300 : 0; // Right side starts slightly later
 
-    function animate() {
-        if (isDestroyed) return;
+    setTimeout(() => {
+        function animate() {
+            if (isDestroyed) return;
 
-        const elapsed = Date.now() - startTime;
-        const progress = Math.min(elapsed / duration, 1);
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
 
-        if (progress >= 1) {
-            clay.remove();
-            return;
+            if (progress >= 1) {
+                clay.remove();
+                return;
+            }
+
+            // Parabolic trajectory with earlier fall
+            const x = startX + (horizontalDistance * progress);
+            // Modified trajectory to fall earlier
+            const arcProgress = progress < 0.5 ? progress * 2 : 1 + (progress - 0.5) * 3;
+            const y = startY - (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight * 2);
+
+            // Size decreases more dramatically
+            scale = 1 - (progress * 0.9); // Shrinks to 10% of original size
+            
+            // Slower rotation
+            rotation += 2 * direction;
+
+            clay.style.left = x + 'px';
+            clay.style.bottom = (window.innerHeight - y) + 'px';
+            clay.style.transform = `rotate(${rotation}deg) scale(${scale})`;
+
+            requestAnimationFrame(animate);
         }
 
-        // Parabolic trajectory with earlier fall
-        const x = startX + (horizontalDistance * progress);
-        // Modified trajectory to fall earlier
-        const arcProgress = progress < 0.5 ? progress * 2 : 1 + (progress - 0.5) * 3;
-        const y = startY - (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight * 2);
-
-        // Size decreases more dramatically (starts at 150px, ends much smaller)
-        scale = 1 - (progress * 0.85); // Shrinks to 15% of original size
-        
-        // Slower rotation
-        rotation += 2;
-
-        clay.style.left = x + 'px';
-        clay.style.bottom = (window.innerHeight - y) + 'px';
-        clay.style.transform = `rotate(${rotation}deg) scale(${scale})`;
-
-        requestAnimationFrame(animate);
-    }
-
-    animate();
+        animate();
+    }, delay);
 }
 
 function shatterClay(clay) {
