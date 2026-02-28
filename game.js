@@ -1,4 +1,7 @@
 // Cool guy animation
+let coolGuyClickable = false;
+let claysLaunching = true;
+
 window.addEventListener('load', () => {
     setTimeout(() => {
         document.getElementById('coolGuy').classList.add('rise');
@@ -6,7 +9,7 @@ window.addEventListener('load', () => {
 
     // Start typing text after cool guy appears
     setTimeout(() => {
-        typeText();
+        typeText("SHOOT THE CLAY ANDY'S!");
     }, 2500);
 
     // Start launching clay pigeons after text finishes
@@ -15,10 +18,41 @@ window.addEventListener('load', () => {
     }, 5500);
 });
 
+// Cool guy click handler
+document.addEventListener('DOMContentLoaded', () => {
+    const coolGuy = document.getElementById('coolGuy');
+    
+    coolGuy.addEventListener('click', () => {
+        if (coolGuyClickable) {
+            scaryReveal();
+        }
+    });
+});
+
+function scaryReveal() {
+    const coolGuy = document.getElementById('coolGuy');
+    const typingText = document.getElementById('typingText');
+    
+    // Stop launching clays
+    claysLaunching = false;
+    
+    // Make cool guy clickable cursor
+    coolGuy.style.cursor = 'default';
+    
+    // Center and enlarge cool guy
+    coolGuy.classList.add('centered');
+    
+    // Clear existing text and type scary message
+    typingText.textContent = '';
+    setTimeout(() => {
+        typeText('YOU ARE NOT SAFE!');
+    }, 500);
+}
+
 // Typing effect
-function typeText() {
-    const text = "SHOOT THE CLAY ANDY'S!";
+function typeText(text) {
     const typingElement = document.getElementById('typingText');
+    typingElement.textContent = ''; // Clear existing text
     let index = 0;
 
     function type() {
@@ -44,14 +78,27 @@ let clayCountLeft = 0;
 
 function launchClayPigeons() {
     // Left side launches continuously
-    setInterval(() => {
+    const leftInterval = setInterval(() => {
+        if (!claysLaunching) {
+            clearInterval(leftInterval);
+            return;
+        }
+        
         launchClay('left');
         clayCountLeft++;
         
         // After 5 left launches, also launch from right with delay
         if (clayCountLeft >= 5) {
+            // Make cool guy clickable
+            if (!coolGuyClickable) {
+                coolGuyClickable = true;
+                document.getElementById('coolGuy').style.cursor = 'pointer';
+            }
+            
             setTimeout(() => {
-                launchClay('right');
+                if (claysLaunching) {
+                    launchClay('right');
+                }
             }, 400); // 400ms delay after left launch
         }
     }, 2000); // Launch every 2 seconds
@@ -69,11 +116,19 @@ function launchClay(side) {
     
     let startX, startY, horizontalDistance, direction;
     
+    // Check if mobile
+    const isMobile = window.innerWidth <= 768;
+    
     if (side === 'right') {
-        // Launch from right side (above cool guy, further right)
-        startX = window.innerWidth + 150;
+        // Launch from right side - adjusted for mobile visibility
+        if (isMobile) {
+            startX = window.innerWidth + 50; // Closer to screen on mobile
+            horizontalDistance = -(window.innerWidth * 1.1); // Less distance on mobile
+        } else {
+            startX = window.innerWidth + 150;
+            horizontalDistance = -(window.innerWidth * 1.3);
+        }
         startY = window.innerHeight + 100;
-        horizontalDistance = -(window.innerWidth * 1.3); // Goes further across screen
         direction = -1;
     } else {
         // Launch from left side
@@ -107,7 +162,10 @@ function launchClay(side) {
     const startTime = Date.now();
 
     function animate() {
-        if (isDestroyed) return;
+        if (isDestroyed || !claysLaunching) {
+            clay.remove();
+            return;
+        }
 
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);

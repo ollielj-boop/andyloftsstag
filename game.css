@@ -147,8 +147,8 @@ body {
     }
 
     .cool-guy {
-        width: 200px;
-        height: 400px;
+        width: 150px;
+        height: 300px;
         right: 0;
     }
 
@@ -161,5 +161,23 @@ body {
         right: 0;
         width: 200px;
         height: 450px;
+    }
+}
+
+/* Cool Guy Centered Animation */
+.cool-guy.centered {
+    right: 50% !important;
+    bottom: 50% !important;
+    transform: translate(50%, 50%) !important;
+    width: 500px !important;
+    height: 500px !important;
+    transition: all 2s ease-out !important;
+    z-index: 100 !important;
+}
+
+@media (max-width: 768px) {
+    .cool-guy.centered {
+        width: 300px !important;
+        height: 300px !important;
     }
 }
