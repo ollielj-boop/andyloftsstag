@@ -142,13 +142,15 @@ body {
     }
 
     .typing-text {
-        font-size: 24px;
+        font-size: 20px;
         bottom: 20px;
+        max-width: 90%;
+        text-align: center;
     }
 
     .cool-guy {
-        width: 150px;
-        height: 300px;
+        width: 100px;
+        height: 200px;
         right: 0;
     }
 
@@ -169,15 +171,15 @@ body {
     right: 50% !important;
     bottom: 50% !important;
     transform: translate(50%, 50%) !important;
-    width: 500px !important;
-    height: 500px !important;
+    width: 700px !important;
+    height: 700px !important;
     transition: all 2s ease-out !important;
     z-index: 100 !important;
 }
 
 @media (max-width: 768px) {
     .cool-guy.centered {
-        width: 300px !important;
-        height: 300px !important;
+        width: 400px !important;
+        height: 400px !important;
     }
 }

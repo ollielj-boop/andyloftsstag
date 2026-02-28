@@ -45,21 +45,34 @@ function scaryReveal() {
     // Clear existing text and type scary message
     typingText.textContent = '';
     setTimeout(() => {
-        typeText('YOU ARE NOT SAFE!');
+        typeText('YOU ARE NOT SAFE!', () => {
+            // Add line break and second line after first is done
+            setTimeout(() => {
+                typingText.innerHTML += '<br>';
+                typeText('YOU MUST BE REMOVED FROM THE SHOOTING RANGE!');
+            }, 500);
+        });
     }, 500);
 }
 
 // Typing effect
-function typeText(text) {
+function typeText(text, callback) {
     const typingElement = document.getElementById('typingText');
-    typingElement.textContent = ''; // Clear existing text
     let index = 0;
+    const startLength = typingElement.textContent.length;
 
     function type() {
         if (index < text.length) {
-            typingElement.textContent += text[index];
+            // Get current text content without HTML
+            const currentText = typingElement.textContent;
+            const beforeBreak = currentText.substring(0, startLength);
+            const afterBreak = currentText.substring(startLength);
+            
+            typingElement.innerHTML = beforeBreak + (beforeBreak ? '<br>' : '') + afterBreak + text[index];
             index++;
             setTimeout(type, 100);
+        } else if (callback) {
+            callback();
         }
     }
 
@@ -114,7 +127,7 @@ function launchClay(side) {
     
     document.getElementById('clayContainer').appendChild(clay);
     
-    let startX, startY, horizontalDistance, direction;
+    let startX, startY, horizontalDistance, direction, peakHeight;
     
     // Check if mobile
     const isMobile = window.innerWidth <= 768;
@@ -122,13 +135,16 @@ function launchClay(side) {
     if (side === 'right') {
         // Launch from right side - adjusted for mobile visibility
         if (isMobile) {
-            startX = window.innerWidth + 50; // Closer to screen on mobile
-            horizontalDistance = -(window.innerWidth * 1.1); // Less distance on mobile
+            startX = window.innerWidth + 80; // Start further right on mobile
+            startY = window.innerHeight * 0.4; // Start higher up (40% from bottom)
+            horizontalDistance = -(window.innerWidth * 1.5); // Arc much further across screen
+            peakHeight = window.innerHeight * 0.55; // Higher peak for mobile
         } else {
             startX = window.innerWidth + 150;
+            startY = window.innerHeight + 100;
             horizontalDistance = -(window.innerWidth * 1.3);
+            peakHeight = window.innerHeight * 0.45;
         }
-        startY = window.innerHeight + 100;
         direction = -1;
     } else {
         // Launch from left side
@@ -136,13 +152,15 @@ function launchClay(side) {
         startY = window.innerHeight + 100;
         horizontalDistance = window.innerWidth + 200;
         direction = 1;
+        peakHeight = window.innerHeight * 0.45;
     }
     
-    // Calculate trajectory - higher peak
-    const peakHeight = window.innerHeight * 0.45; // Peak at 45% of screen height
-    
     clay.style.left = startX + 'px';
-    clay.style.bottom = '0px';
+    if (side === 'right' && isMobile) {
+        clay.style.bottom = startY + 'px';
+    } else {
+        clay.style.bottom = '0px';
+    }
     
     let rotation = 0;
     let scale = 1;
@@ -178,7 +196,14 @@ function launchClay(side) {
         // Parabolic trajectory with earlier fall
         const x = startX + (horizontalDistance * progress);
         const arcProgress = progress < 0.5 ? progress * 2 : 1 + (progress - 0.5) * 3;
-        const y = startY - (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight * 2);
+        
+        let y;
+        if (side === 'right' && isMobile) {
+            // Special trajectory for mobile right side
+            y = startY + (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight);
+        } else {
+            y = startY - (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight * 2);
+        }
 
         // Size decreases more dramatically for right side
         const shrinkAmount = side === 'right' ? 0.92 : 0.9; // Right side shrinks to 8%
@@ -188,7 +213,11 @@ function launchClay(side) {
         rotation += 2 * direction;
 
         clay.style.left = x + 'px';
-        clay.style.bottom = (window.innerHeight - y) + 'px';
+        if (side === 'right' && isMobile) {
+            clay.style.bottom = y + 'px';
+        } else {
+            clay.style.bottom = (window.innerHeight - y) + 'px';
+        }
         clay.style.transform = `rotate(${rotation}deg) scale(${scale})`;
 
         requestAnimationFrame(animate);
