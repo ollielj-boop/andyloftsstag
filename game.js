@@ -1,6 +1,7 @@
 // Cool guy animation
 let coolGuyClickable = false;
 let claysLaunching = true;
+let scaryRevealed = false; // Track if reveal has happened
 
 window.addEventListener('load', () => {
     setTimeout(() => {
@@ -23,8 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const coolGuy = document.getElementById('coolGuy');
     
     coolGuy.addEventListener('click', () => {
-        if (coolGuyClickable) {
+        if (coolGuyClickable && !scaryRevealed) {
             scaryReveal();
+            scaryRevealed = true; // Prevent multiple reveals
         }
     });
 });
@@ -36,7 +38,7 @@ function scaryReveal() {
     // Stop launching clays
     claysLaunching = false;
     
-    // Make cool guy clickable cursor
+    // Make cool guy not clickable anymore
     coolGuy.style.cursor = 'default';
     
     // Center and enlarge cool guy
@@ -135,10 +137,10 @@ function launchClay(side) {
     if (side === 'right') {
         // Launch from right side - adjusted for mobile visibility
         if (isMobile) {
-            startX = window.innerWidth + 80; // Start further right on mobile
-            startY = window.innerHeight * 0.4; // Start higher up (40% from bottom)
-            horizontalDistance = -(window.innerWidth * 1.5); // Arc much further across screen
-            peakHeight = window.innerHeight * 0.55; // Higher peak for mobile
+            startX = window.innerWidth + 80;
+            startY = window.innerHeight + 100; // Start from below screen like left side
+            horizontalDistance = -(window.innerWidth * 1.5);
+            peakHeight = window.innerHeight * 0.5; // Peak at 50% of screen height
         } else {
             startX = window.innerWidth + 150;
             startY = window.innerHeight + 100;
@@ -156,11 +158,7 @@ function launchClay(side) {
     }
     
     clay.style.left = startX + 'px';
-    if (side === 'right' && isMobile) {
-        clay.style.bottom = startY + 'px';
-    } else {
-        clay.style.bottom = '0px';
-    }
+    clay.style.bottom = '0px';
     
     let rotation = 0;
     let scale = 1;
@@ -196,14 +194,7 @@ function launchClay(side) {
         // Parabolic trajectory with earlier fall
         const x = startX + (horizontalDistance * progress);
         const arcProgress = progress < 0.5 ? progress * 2 : 1 + (progress - 0.5) * 3;
-        
-        let y;
-        if (side === 'right' && isMobile) {
-            // Special trajectory for mobile right side
-            y = startY + (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight);
-        } else {
-            y = startY - (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight * 2);
-        }
+        const y = startY - (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight * 2);
 
         // Size decreases more dramatically for right side
         const shrinkAmount = side === 'right' ? 0.92 : 0.9; // Right side shrinks to 8%
@@ -213,11 +204,7 @@ function launchClay(side) {
         rotation += 2 * direction;
 
         clay.style.left = x + 'px';
-        if (side === 'right' && isMobile) {
-            clay.style.bottom = y + 'px';
-        } else {
-            clay.style.bottom = (window.innerHeight - y) + 'px';
-        }
+        clay.style.bottom = (window.innerHeight - y) + 'px';
         clay.style.transform = `rotate(${rotation}deg) scale(${scale})`;
 
         requestAnimationFrame(animate);
