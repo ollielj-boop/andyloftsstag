@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Pub Adventure - Andy's Stag Do</title>
+    <title>The Farmers Boy Inn - Andy's Stag Do</title>
     <style>
         * {
             margin: 0;
@@ -32,13 +32,16 @@
             border: 3px solid #00ff00;
             position: relative;
             overflow: hidden;
-            image-rendering: pixelated;
+            background-color: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .scene-image img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
             filter: contrast(1.1) saturate(1.2);
         }
 
@@ -55,6 +58,7 @@
             justify-content: center;
             font-size: 24px;
             color: #00ff00;
+            z-index: 10;
         }
 
         .loading.hidden {
@@ -133,7 +137,7 @@
             }
 
             .game-title {
-                font-size: 24px;
+                font-size: 22px;
             }
 
             .text-area, .option-button {
@@ -144,7 +148,7 @@
 </head>
 <body>
     <div class="container">
-        <h1 class="game-title">THE PUB ADVENTURE</h1>
+        <h1 class="game-title">THE FARMERS BOY INN</h1>
         
         <div class="scene-image">
             <div class="loading" id="loading">LOADING<span class="cursor">_</span></div>
@@ -187,31 +191,28 @@
             
             // Simulate loading time for retro feel
             setTimeout(() => {
-                img.src = `images/${scene.image}.JPG`;
+                // Try different extensions
+                const extensions = ['', '.JPG', '.jpg', '.jpeg', '.JPEG', '.png', '.PNG'];
+                let extensionIndex = 0;
+                
+                const tryLoadImage = () => {
+                    if (extensionIndex < extensions.length) {
+                        img.src = `images/${scene.image}${extensions[extensionIndex]}`;
+                        extensionIndex++;
+                    } else {
+                        loading.innerHTML = 'IMAGE NOT FOUND: ' + scene.image;
+                        img.style.display = 'none';
+                    }
+                };
                 
                 img.onload = () => {
                     loading.classList.add('hidden');
                     img.style.display = 'block';
                 };
                 
-                // Fallback for different extensions
-                img.onerror = () => {
-                    const extensions = ['.jpg', '.jpeg', '.JPG', '.JPEG', '.png', '.PNG'];
-                    let tried = 0;
-                    
-                    const tryNext = () => {
-                        if (tried < extensions.length) {
-                            img.src = `images/${scene.image}${extensions[tried]}`;
-                            tried++;
-                        } else {
-                            loading.innerHTML = 'IMAGE NOT FOUND';
-                            img.style.display = 'none';
-                        }
-                    };
-                    
-                    img.onerror = tryNext;
-                    tryNext();
-                };
+                img.onerror = tryLoadImage;
+                
+                tryLoadImage();
             }, 500);
 
             // Type out text
