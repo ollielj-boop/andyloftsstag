@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pub Adventure - Andy's Stag Do</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #000;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Image area */
+        .scene-image {
+            width: 100%;
+            height: 400px;
+            margin-bottom: 30px;
+            border: 3px solid #00ff00;
+            position: relative;
+            overflow: hidden;
+            image-rendering: pixelated;
+        }
+
+        .scene-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: contrast(1.1) saturate(1.2);
+        }
+
+        /* Loading effect */
+        .loading {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: #00ff00;
+        }
+
+        .loading.hidden {
+            display: none;
+        }
+
+        /* Text area */
+        .text-area {
+            background-color: #000;
+            border: 2px solid #00ff00;
+            padding: 20px;
+            min-height: 200px;
+            margin-bottom: 20px;
+            line-height: 1.8;
+            font-size: 18px;
+        }
+
+        .text-content {
+            white-space: pre-wrap;
+        }
+
+        /* Options */
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .option-button {
+            background-color: #000;
+            color: #00ff00;
+            border: 2px solid #00ff00;
+            padding: 15px 25px;
+            font-family: 'Courier New', monospace;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: left;
+        }
+
+        .option-button:hover {
+            background-color: #00ff00;
+            color: #000;
+            transform: translateX(10px);
+        }
+
+        .option-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        /* Title */
+        .game-title {
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 30px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+            letter-spacing: 3px;
+        }
+
+        /* Cursor blink effect */
+        .cursor {
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        /* Mobile adjustments */
+        @media (max-width: 768px) {
+            .scene-image {
+                height: 250px;
+            }
+
+            .game-title {
+                font-size: 24px;
+            }
+
+            .text-area, .option-button {
+                font-size: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="game-title">THE PUB ADVENTURE</h1>
+        
+        <div class="scene-image">
+            <div class="loading" id="loading">LOADING<span class="cursor">_</span></div>
+            <img id="scene-img" src="" alt="Scene" style="display: none;">
+        </div>
+
+        <div class="text-area">
+            <div class="text-content" id="text-content"></div>
+        </div>
+
+        <div class="options" id="options"></div>
+    </div>
+
+    <script src="game-data.js"></script>
+    <script>
+        let currentScene = 'Pub1';
+        let isTyping = false;
+
+        // Load scene
+        function loadScene(sceneName) {
+            if (isTyping) return;
+            
+            currentScene = sceneName;
+            const scene = gameData[sceneName];
+            
+            if (!scene) {
+                console.error('Scene not found:', sceneName);
+                return;
+            }
+
+            // Clear options while typing
+            document.getElementById('options').innerHTML = '';
+            
+            // Load image with loading effect
+            const loading = document.getElementById('loading');
+            const img = document.getElementById('scene-img');
+            
+            loading.classList.remove('hidden');
+            img.style.display = 'none';
+            
+            // Simulate loading time for retro feel
+            setTimeout(() => {
+                img.src = `images/${scene.image}.JPG`;
+                
+                img.onload = () => {
+                    loading.classList.add('hidden');
+                    img.style.display = 'block';
+                };
+                
+                // Fallback for different extensions
+                img.onerror = () => {
+                    const extensions = ['.jpg', '.jpeg', '.JPG', '.JPEG', '.png', '.PNG'];
+                    let tried = 0;
+                    
+                    const tryNext = () => {
+                        if (tried < extensions.length) {
+                            img.src = `images/${scene.image}${extensions[tried]}`;
+                            tried++;
+                        } else {
+                            loading.innerHTML = 'IMAGE NOT FOUND';
+                            img.style.display = 'none';
+                        }
+                    };
+                    
+                    img.onerror = tryNext;
+                    tryNext();
+                };
+            }, 500);
+
+            // Type out text
+            typeText(scene.text, () => {
+                // Show options after text is done
+                showOptions(scene.options);
+            });
+        }
+
+        // Typing effect
+        function typeText(text, callback) {
+            isTyping = true;
+            const textElement = document.getElementById('text-content');
+            textElement.textContent = '';
+            
+            let index = 0;
+            const speed = 30; // milliseconds per character
+
+            function type() {
+                if (index < text.length) {
+                    textElement.textContent += text[index];
+                    index++;
+                    setTimeout(type, speed);
+                } else {
+                    isTyping = false;
+                    if (callback) callback();
+                }
+            }
+
+            type();
+        }
+
+        // Show options
+        function showOptions(options) {
+            const optionsContainer = document.getElementById('options');
+            optionsContainer.innerHTML = '';
+
+            options.forEach((option, index) => {
+                const button = document.createElement('button');
+                button.className = 'option-button';
+                button.textContent = `> ${option.text}`;
+                button.style.opacity = '0';
+                
+                button.onclick = () => handleOption(option);
+
+                optionsContainer.appendChild(button);
+
+                // Fade in with delay
+                setTimeout(() => {
+                    button.style.transition = 'opacity 0.5s';
+                    button.style.opacity = '1';
+                }, index * 200);
+            });
+        }
+
+        // Handle option selection
+        function handleOption(option) {
+            const lead = option.lead;
+
+            // Check for special leads
+            if (lead === 'Website Home Page') {
+                window.location.href = 'index.html';
+            } else if (lead === 'Golf Game page') {
+                window.location.href = 'golf-game.html';
+            } else if (lead && gameData[lead]) {
+                loadScene(lead);
+            } else {
+                console.error('Invalid lead:', lead);
+            }
+        }
+
+        // Start the game
+        window.addEventListener('load', () => {
+            loadScene('Pub1');
+        });
+    </script>
+</body>
+</html>

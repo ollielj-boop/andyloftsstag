@@ -38,8 +38,13 @@ function scaryReveal() {
     // Stop launching clays
     claysLaunching = false;
     
-    // Make cool guy not clickable anymore
-    coolGuy.style.cursor = 'default';
+    // Make cool guy clickable to go to adventure after delay
+    setTimeout(() => {
+        coolGuy.style.cursor = 'pointer';
+        coolGuy.onclick = () => {
+            window.location.href = 'adventure.html';
+        };
+    }, 3000);
     
     // Center and enlarge cool guy
     coolGuy.classList.add('centered');
