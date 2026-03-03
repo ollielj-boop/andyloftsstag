@@ -18,10 +18,51 @@
             overflow-x: hidden;
         }
 
+        /* IBM PC style logo */
+        .ibm-logo {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            cursor: pointer;
+            z-index: 100;
+            transition: opacity 0.3s;
+        }
+
+        .ibm-logo:hover {
+            opacity: 0.7;
+        }
+
+        .ibm-logo-text {
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: #808080;
+            letter-spacing: 2px;
+            position: relative;
+            display: inline-block;
+            line-height: 1;
+        }
+
+        .ibm-logo-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 2px;
+            background-color: #808080;
+        }
+
+        .ibm-logo-text span {
+            position: relative;
+            background-color: #000;
+            padding: 0 3px;
+        }
+
         .container {
             max-width: 900px;
             margin: 0 auto;
             padding: 20px;
+            padding-top: 80px;
         }
 
         /* Image area */
@@ -110,14 +151,37 @@
             cursor: not-allowed;
         }
 
-        /* Title */
+        /* Title - IBM PC style */
         .game-title {
             text-align: center;
             font-size: 32px;
             margin-bottom: 30px;
             color: #00ff00;
-            text-shadow: 0 0 10px #00ff00;
-            letter-spacing: 3px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            position: relative;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .game-title-inner {
+            position: relative;
+            display: inline-block;
+        }
+
+        .game-title-line {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 50%;
+            height: 3px;
+            background-color: #00ff00;
+        }
+
+        .game-title span {
+            position: relative;
+            background-color: #000;
+            padding: 0 8px;
         }
 
         /* Cursor blink effect */
@@ -132,12 +196,26 @@
 
         /* Mobile adjustments */
         @media (max-width: 768px) {
+            .ibm-logo {
+                top: 10px;
+                left: 10px;
+            }
+
+            .ibm-logo-text {
+                font-size: 12px;
+            }
+
+            .container {
+                padding-top: 60px;
+            }
+
             .scene-image {
                 height: 250px;
             }
 
             .game-title {
                 font-size: 22px;
+                letter-spacing: 2px;
             }
 
             .text-area, .option-button {
@@ -147,8 +225,21 @@
     </style>
 </head>
 <body>
+    <!-- IBM PC style logo -->
+    <div class="ibm-logo" onclick="window.location.href='index.html'">
+        <div class="ibm-logo-text">
+            <div class="ibm-logo-line"></div>
+            <span>ANDY LOFTS STAG DO</span>
+        </div>
+    </div>
+
     <div class="container">
-        <h1 class="game-title">THE FARMERS BOY INN</h1>
+        <h1 class="game-title">
+            <div class="game-title-inner">
+                <div class="game-title-line"></div>
+                <span>THE FARMERS BOY INN</span>
+            </div>
+        </h1>
         
         <div class="scene-image">
             <div class="loading" id="loading">LOADING<span class="cursor">_</span></div>
