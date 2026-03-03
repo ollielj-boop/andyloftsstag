@@ -221,7 +221,7 @@ const gameData = {
   },
   "PubInt2": {
     "image": "PubInterior2a",
-    "text": "Everyone in the pub is cheering. A dishevelled guy with glasses who was sat in the corner is absolutely loving it. Matt hides behind the table.\nThe barman thanks you:\n\u201cWe hate the horrible old man. He\u2019s been stealing desserts all day. And we think he may have been pleasuring himself in toilets. Thanks for giving him a richly deserved beating\u201d",
+    "text": "Everyone in the pub is cheering. A dishevelled man with glasses who was sat in the corner is absolutely loving it. Matt hides behind the table. The pub landlord thanks you: \"We hate the horrible old man. He's been stealing desserts all day. And we think he may have been pleasuring himself in toilets. Thanks for giving him a richly deserved beating\"",
     "options": [
       {
         "text": "Leave",
@@ -259,7 +259,7 @@ const gameData = {
   },
   "Pub4": {
     "image": "PubOutside3",
-    "text": "\"Oh this? It's my trusty car hammer of course - you know I'd don\u2019t travel anywhere without it!\"",
+    "text": "\"Oh this? It's my trusty car hammer of course - you know I don't travel anywhere without it! You never know what might happen...\"",
     "options": [
       {
         "text": "Of course - lets go play golf",
@@ -304,7 +304,7 @@ const gameData = {
         "lead": "Golf Game page"
       },
       {
-        "text": "Smash Matts computer with the Hammer",
+        "text": "Smash Matts computer with the hammer",
         "lead": "SMC4"
       },
       {
@@ -315,7 +315,7 @@ const gameData = {
   },
   "SMC4": {
     "image": "SadMatt3",
-    "text": "\"No! My dessert algorithm!\"",
+    "text": "\"No! My dessert algorithm machine!\"",
     "options": [
       {
         "text": "Leave and go and play golf",
