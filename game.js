@@ -100,18 +100,6 @@ function updateTimerDisplay(val) {
 
 // ─── End states ───────────────────────────────────────────────────────────────
 
-function fadeToBlackAndRedirect() {
-    const overlay = document.createElement('div');
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;opacity:0;z-index:9999;transition:opacity 1.5s ease;pointer-events:none;';
-    document.body.appendChild(overlay);
-    requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-            overlay.style.opacity = '1';
-        });
-    });
-    setTimeout(() => { window.location.href = 'adventure.html'; }, 1600);
-}
-
 function scaryReveal() {
     const coolGuy = document.getElementById('coolGuy');
     const typingText = document.getElementById('typingText');
@@ -120,42 +108,31 @@ function scaryReveal() {
     if (countdownInterval) clearInterval(countdownInterval);
     if (bottomLaunchInterval) clearInterval(bottomLaunchInterval);
 
-    // Remove the top blocker so whole image is clickable
+    // Remove the top blocker so the whole image is clickable
     const blocker = document.getElementById('coolGuyBlocker');
     if (blocker) blocker.remove();
 
+    // Grow cool guy
     coolGuy.classList.add('centered');
 
-    // Track auto-redirect timer so clicking can cancel it
-    let autoRedirectTimer = null;
-
-    // Make entire cool guy clickable — clicking redirects immediately with fade
+    // Make entire cool guy clickable — clicking goes straight to adventure
     coolGuy.style.pointerEvents = 'auto';
     coolGuy.style.cursor = 'pointer';
-    const handleCoolGuyClick = () => {
-        if (autoRedirectTimer) clearTimeout(autoRedirectTimer);
-        fadeToBlackAndRedirect();
-    };
-    coolGuy.onclick = handleCoolGuyClick;
+    coolGuy.onclick = () => { window.location.href = 'adventure.html'; };
     const cgImg = coolGuy.querySelector('img');
     if (cgImg) {
         cgImg.style.pointerEvents = 'auto';
         cgImg.style.cursor = 'pointer';
-        cgImg.onclick = handleCoolGuyClick;
+        cgImg.onclick = () => { window.location.href = 'adventure.html'; };
     }
 
-    // Type both lines; once fully done, wait 3s then auto-fade
+    // Type both lines of scary text
     typingText.textContent = '';
     setTimeout(() => {
         typeText('YOU SHOT ME. YOU ARE NOT SAFE!', () => {
             setTimeout(() => {
                 typingText.innerHTML += '<br>';
-                typeText('YOU MUST BE REMOVED FROM THE SHOOTING RANGE!', () => {
-                    // Text complete — start 3s countdown to auto-redirect
-                    autoRedirectTimer = setTimeout(() => {
-                        fadeToBlackAndRedirect();
-                    }, 3000);
-                });
+                typeText('YOU MUST BE REMOVED FROM THE SHOOTING RANGE!');
             }, 500);
         });
     }, 500);
