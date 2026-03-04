@@ -108,31 +108,33 @@ function scaryReveal() {
     if (countdownInterval) clearInterval(countdownInterval);
     if (bottomLaunchInterval) clearInterval(bottomLaunchInterval);
 
-    // Remove the top blocker so the whole image is clickable
+    // Remove the top blocker
     const blocker = document.getElementById('coolGuyBlocker');
     if (blocker) blocker.remove();
 
-    // Grow cool guy
+    // Grow cool guy — not yet clickable
     coolGuy.classList.add('centered');
-
-    // Make entire cool guy clickable — clicking goes straight to adventure
-    coolGuy.style.pointerEvents = 'auto';
-    coolGuy.style.cursor = 'pointer';
-    coolGuy.onclick = () => { window.location.href = 'adventure.html'; };
+    coolGuy.style.pointerEvents = 'none';
     const cgImg = coolGuy.querySelector('img');
-    if (cgImg) {
-        cgImg.style.pointerEvents = 'auto';
-        cgImg.style.cursor = 'pointer';
-        cgImg.onclick = () => { window.location.href = 'adventure.html'; };
-    }
+    if (cgImg) { cgImg.style.pointerEvents = 'none'; cgImg.style.cursor = 'default'; }
 
-    // Type both lines of scary text
+    // Type both lines, then make cool guy clickable to go to adventure
     typingText.textContent = '';
     setTimeout(() => {
         typeText('YOU SHOT ME. YOU ARE NOT SAFE!', () => {
             setTimeout(() => {
                 typingText.innerHTML += '<br>';
-                typeText('YOU MUST BE REMOVED FROM THE SHOOTING RANGE!');
+                typeText('YOU MUST BE REMOVED FROM THE SHOOTING RANGE!', () => {
+                    // Text done — now make cool guy clickable
+                    coolGuy.style.pointerEvents = 'auto';
+                    coolGuy.style.cursor = 'pointer';
+                    coolGuy.onclick = () => { window.location.href = 'adventure.html'; };
+                    if (cgImg) {
+                        cgImg.style.pointerEvents = 'auto';
+                        cgImg.style.cursor = 'pointer';
+                        cgImg.onclick = () => { window.location.href = 'adventure.html'; };
+                    }
+                });
             }, 500);
         });
     }, 500);
