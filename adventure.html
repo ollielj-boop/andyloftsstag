@@ -188,7 +188,8 @@
         /* Mobile adjustments */
         @media (max-width: 768px) {
             .ibm-logo {
-                top: 10px;
+                /* Sit below the game-title bar (approx 32px tall on mobile) */
+                top: 36px;
                 left: 10px;
             }
 
@@ -197,7 +198,8 @@
             }
 
             .container {
-                padding-top: 100px;
+                /* Clear game-title (~32px) + ibm-logo (~28px) + gap */
+                padding-top: 120px;
             }
 
             .game-title {

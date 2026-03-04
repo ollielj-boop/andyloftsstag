@@ -28,12 +28,19 @@ window.addEventListener('load', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     const coolGuy = document.getElementById('coolGuy');
-    coolGuy.addEventListener('click', () => {
-        if (coolGuyClickable && !scaryRevealed) {
-            scaryReveal();
-            scaryRevealed = true;
-        }
-    });
+    // Make the div non-interactive; only the img inside is clickable
+    coolGuy.style.pointerEvents = 'none';
+    const coolGuyImg = coolGuy.querySelector('img');
+    if (coolGuyImg) {
+        coolGuyImg.style.pointerEvents = 'auto';
+        coolGuyImg.style.cursor = 'default';
+        coolGuyImg.addEventListener('click', () => {
+            if (coolGuyClickable && !scaryRevealed) {
+                scaryReveal();
+                scaryRevealed = true;
+            }
+        });
+    }
 });
 
 // ─── Countdown ────────────────────────────────────────────────────────────────
@@ -91,8 +98,15 @@ function scaryReveal() {
     if (bottomLaunchInterval) clearInterval(bottomLaunchInterval);
 
     setTimeout(() => {
-        coolGuy.style.cursor = 'pointer';
-        coolGuy.onclick = () => { window.location.href = 'adventure.html'; };
+        const cgImg = coolGuy.querySelector('img');
+        if (cgImg) {
+            cgImg.style.cursor = 'pointer';
+            cgImg.onclick = () => { window.location.href = 'adventure.html'; };
+        } else {
+            coolGuy.style.pointerEvents = 'auto';
+            coolGuy.style.cursor = 'pointer';
+            coolGuy.onclick = () => { window.location.href = 'adventure.html'; };
+        }
     }, 3000);
 
     coolGuy.classList.add('centered');
@@ -115,9 +129,10 @@ function countdownMilestone() {
     claysLaunching = false;
     if (bottomLaunchInterval) clearInterval(bottomLaunchInterval);
 
-    // Disable accidental click on cool guy
+    // Disable accidental click on cool guy (div already none; also disable img)
     coolGuy.style.pointerEvents = 'none';
-    coolGuy.style.cursor = 'default';
+    const cgImgM = coolGuy.querySelector('img');
+    if (cgImgM) { cgImgM.style.pointerEvents = 'none'; cgImgM.style.cursor = 'default'; }
     coolGuy.classList.add('centered');
 
     typingText.textContent = '';
@@ -146,8 +161,14 @@ function showChoiceButtons() {
 
         const coolGuy = document.getElementById('coolGuy');
         coolGuy.classList.remove('centered');
-        coolGuy.style.pointerEvents = '';
-        coolGuy.style.cursor = '';
+        // Restore: div stays pointer-events:none, img gets pointer-events:auto
+        coolGuy.style.pointerEvents = 'none';
+        const cgImgNo = coolGuy.querySelector('img');
+        if (cgImgNo) {
+            cgImgNo.style.pointerEvents = 'auto';
+            cgImgNo.style.cursor = 'default';
+            cgImgNo.onclick = null; // clear any scary reveal onclick
+        }
 
         document.getElementById('typingText').textContent = '';
         claysLaunching = true;
@@ -155,6 +176,11 @@ function showChoiceButtons() {
         countdownValue = 59;
         speedMultiplier = 1;
         bottomLaunchInterval = null;
+        clayCountLeft = 0; // reset so right clays restart properly
+
+        // Restart clay launches (launchClayPigeons sets up speed watcher + cycle)
+        if (leftInterval) clearInterval(leftInterval);
+        launchClayPigeons();
 
         startCountdown();
     };
