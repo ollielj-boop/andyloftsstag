@@ -29,7 +29,7 @@ const gameData = {
   },
   "MC1": {
     "image": "Clayton1",
-    "text": "You walk over.\nPhew - it isn't a horrible old goblin, its just a horrible old man!\nIt's Matt Clayton. He speaks.\n\"Hello traveller, you look weary. You must have low blood sugar - but fear not, im here to help! I am known throughout the land for my dessert pairing abilities. I can help you pick the two best puddings for your palate, to enhance the flavours of both, creating a balanced and enhanced dining experience. Now sit down and I'll ask you a few questions to feed into my algorithm...\" ",
+    "text": "You walk over.\nPhew - it isn't a horrible old goblin, its just a horrible old man!\nIt's Matt Clayton:\n\"Hello traveller, you look weary. You must have low blood sugar - but fear not, im here to help! I am known throughout the land for my dessert pairing abilities. I can help you pick the two best puddings for your palate, to enhance the flavours of both, creating a balanced and enhanced dining experience. Now sit down and I'll ask you a few questions to feed into my algorithm...\" ",
     "options": [
       {
         "text": "Sit",
@@ -43,14 +43,14 @@ const gameData = {
   },
   "MC2": {
     "image": "Clayton1",
-    "text": "\"So, let's get started - do you like desserts?\"",
+    "text": "\"So, let's get started - I assume you like desserts?\"",
     "options": [
       {
         "text": "Yes",
         "lead": "MC4"
       },
       {
-        "text": "No",
+        "text": "Not really",
         "lead": "MC3"
       }
     ]
@@ -197,7 +197,7 @@ const gameData = {
   },
   "SMC1": {
     "image": "SadMatt1",
-    "text": "Something terrible had happened. The horrible old man has eaten both desserts before you even had a chance to taste them.\n\"Oh no, it's happened again...\" he says",
+    "text": "Something terrible has occurred. The horrible old man has eaten both desserts before you even had a chance to taste them.\n\"Oh no, it's happened again...\" he says",
     "options": [
       {
         "text": "Leave",
@@ -221,7 +221,7 @@ const gameData = {
   },
   "PubInt2": {
     "image": "PubInterior2a",
-    "text": "Everyone in the pub is cheering. A dishevelled man with glasses who was sat in the corner is absolutely loving it. Matt hides behind the table. The pub landlord thanks you: \"We hate the horrible old man. He's been stealing desserts all day. And we think he may have been pleasuring himself in toilets. Thanks for giving him a richly deserved beating\"",
+    "text": "Everyone in the pub is cheering. A dishevelled man with glasses who was sat in the corner is absolutely loving it. Matt hides behind the table. The pub landlord thanks you: \"We hate that horrible old man. He's been stealing desserts all day. And we think he may have been pleasuring himself in toilets. Thanks for giving him a richly deserved beating\"",
     "options": [
       {
         "text": "Leave",
