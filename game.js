@@ -100,6 +100,18 @@ function updateTimerDisplay(val) {
 
 // ─── End states ───────────────────────────────────────────────────────────────
 
+function fadeToBlackAndRedirect() {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:#000;opacity:0;z-index:9999;transition:opacity 1.5s ease;pointer-events:none;';
+    document.body.appendChild(overlay);
+    requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+            overlay.style.opacity = '1';
+        });
+    });
+    setTimeout(() => { window.location.href = 'adventure.html'; }, 1600);
+}
+
 function scaryReveal() {
     const coolGuy = document.getElementById('coolGuy');
     const typingText = document.getElementById('typingText');
@@ -108,17 +120,21 @@ function scaryReveal() {
     if (countdownInterval) clearInterval(countdownInterval);
     if (bottomLaunchInterval) clearInterval(bottomLaunchInterval);
 
-    setTimeout(() => {
-        const cgImg = coolGuy.querySelector('img');
-        if (cgImg) {
-            cgImg.style.cursor = 'pointer';
-            cgImg.onclick = () => { window.location.href = 'adventure.html'; };
-        } else {
-            coolGuy.style.pointerEvents = 'auto';
-            coolGuy.style.cursor = 'pointer';
-            coolGuy.onclick = () => { window.location.href = 'adventure.html'; };
-        }
-    }, 3000);
+    // Remove the top-40% blocker so whole image is clickable
+    const blocker = document.getElementById('coolGuyBlocker');
+    if (blocker) blocker.remove();
+
+    // Make entire cool guy div clickable immediately
+    coolGuy.style.pointerEvents = 'auto';
+    coolGuy.style.cursor = 'pointer';
+    coolGuy.onclick = () => { fadeToBlackAndRedirect(); };
+    // Also make img clickable
+    const cgImg = coolGuy.querySelector('img');
+    if (cgImg) {
+        cgImg.style.pointerEvents = 'auto';
+        cgImg.style.cursor = 'pointer';
+        cgImg.onclick = () => { fadeToBlackAndRedirect(); };
+    }
 
     coolGuy.classList.add('centered');
 
@@ -131,6 +147,11 @@ function scaryReveal() {
             }, 500);
         });
     }, 500);
+
+    // Auto-redirect after 4 seconds with fade
+    setTimeout(() => {
+        fadeToBlackAndRedirect();
+    }, 4000);
 }
 
 function countdownMilestone() {
@@ -174,16 +195,27 @@ function showChoiceButtons() {
         coolGuy.classList.remove('centered');
         // Restore: div stays pointer-events:none, img gets pointer-events:auto
         coolGuy.style.pointerEvents = 'none';
+        // Re-enable cool guy clickability for the new round
+        coolGuyClickable = true;
+        coolGuy.style.pointerEvents = 'none'; // div stays none, img is the click target
         const cgImgNo = coolGuy.querySelector('img');
         if (cgImgNo) {
             cgImgNo.style.pointerEvents = 'auto';
-            cgImgNo.style.cursor = 'default';
-            cgImgNo.onclick = null; // clear any scary reveal onclick
+            cgImgNo.style.cursor = 'pointer';
+            cgImgNo.onclick = null; // cleared - the DOMContentLoaded listener handles it
+        }
+        // Restore top blocker on desktop
+        if (window.innerWidth > 768 && !document.getElementById('coolGuyBlocker')) {
+            const blockerNo = document.createElement('div');
+            blockerNo.className = 'cool-guy-blocker';
+            blockerNo.id = 'coolGuyBlocker';
+            coolGuy.appendChild(blockerNo);
         }
 
         document.getElementById('typingText').textContent = '';
         claysLaunching = true;
         countdownFinished = false;
+        scaryRevealed = false; // allow cool guy to be clicked again
         countdownValue = 59;
         speedMultiplier = 1;
         bottomLaunchInterval = null;
