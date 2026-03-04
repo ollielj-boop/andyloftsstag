@@ -28,8 +28,9 @@ window.addEventListener('load', () => {
 
 document.addEventListener('DOMContentLoaded', () => {
     const coolGuy = document.getElementById('coolGuy');
-    // Make the div non-interactive; only the img inside is clickable
+    // Div itself non-interactive
     coolGuy.style.pointerEvents = 'none';
+
     const coolGuyImg = coolGuy.querySelector('img');
     if (coolGuyImg) {
         coolGuyImg.style.pointerEvents = 'auto';
@@ -40,6 +41,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 scaryRevealed = true;
             }
         });
+    }
+
+    // Add a transparent blocker over the top 40% of the image so it can't be
+    // accidentally clicked — only the lower 60% (the body) is interactive.
+    // Only apply on non-mobile (desktop has the accidental click problem).
+    if (window.innerWidth > 768) {
+        const blocker = document.createElement('div');
+        blocker.className = 'cool-guy-blocker';
+        blocker.id = 'coolGuyBlocker';
+        coolGuy.appendChild(blocker);
     }
 });
 
