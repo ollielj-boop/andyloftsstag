@@ -120,38 +120,45 @@ function scaryReveal() {
     if (countdownInterval) clearInterval(countdownInterval);
     if (bottomLaunchInterval) clearInterval(bottomLaunchInterval);
 
-    // Remove the top-40% blocker so whole image is clickable
+    // Remove the top blocker so whole image is clickable
     const blocker = document.getElementById('coolGuyBlocker');
     if (blocker) blocker.remove();
 
-    // Make entire cool guy div clickable immediately
+    coolGuy.classList.add('centered');
+
+    // Track auto-redirect timer so clicking can cancel it
+    let autoRedirectTimer = null;
+
+    // Make entire cool guy clickable — clicking redirects immediately with fade
     coolGuy.style.pointerEvents = 'auto';
     coolGuy.style.cursor = 'pointer';
-    coolGuy.onclick = () => { fadeToBlackAndRedirect(); };
-    // Also make img clickable
+    const handleCoolGuyClick = () => {
+        if (autoRedirectTimer) clearTimeout(autoRedirectTimer);
+        fadeToBlackAndRedirect();
+    };
+    coolGuy.onclick = handleCoolGuyClick;
     const cgImg = coolGuy.querySelector('img');
     if (cgImg) {
         cgImg.style.pointerEvents = 'auto';
         cgImg.style.cursor = 'pointer';
-        cgImg.onclick = () => { fadeToBlackAndRedirect(); };
+        cgImg.onclick = handleCoolGuyClick;
     }
 
-    coolGuy.classList.add('centered');
-
+    // Type both lines; once fully done, wait 3s then auto-fade
     typingText.textContent = '';
     setTimeout(() => {
         typeText('YOU SHOT ME. YOU ARE NOT SAFE!', () => {
             setTimeout(() => {
                 typingText.innerHTML += '<br>';
-                typeText('YOU MUST BE REMOVED FROM THE SHOOTING RANGE!');
+                typeText('YOU MUST BE REMOVED FROM THE SHOOTING RANGE!', () => {
+                    // Text complete — start 3s countdown to auto-redirect
+                    autoRedirectTimer = setTimeout(() => {
+                        fadeToBlackAndRedirect();
+                    }, 3000);
+                });
             }, 500);
         });
     }, 500);
-
-    // Auto-redirect after 4 seconds with fade
-    setTimeout(() => {
-        fadeToBlackAndRedirect();
-    }, 4000);
 }
 
 function countdownMilestone() {
