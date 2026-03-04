@@ -1,4 +1,4 @@
-// Cool guy animation
+// State
 let coolGuyClickable = false;
 let claysLaunching = true;
 let scaryRevealed = false;
@@ -7,28 +7,27 @@ let clayCount = 0;
 let countdownValue = 59;
 let countdownInterval = null;
 let speedMultiplier = 1;
+let bottomLaunchInterval = null;
+let gameStartTime = null;
 
 window.addEventListener('load', () => {
     setTimeout(() => {
         document.getElementById('coolGuy').classList.add('rise');
     }, 500);
 
-    // Start typing text after cool guy appears
     setTimeout(() => {
         typeText("SHOOT THE CLAY ANDY'S!");
     }, 2500);
 
-    // Start launching clay pigeons and countdown after text finishes
     setTimeout(() => {
+        gameStartTime = Date.now();
         launchClayPigeons();
         startCountdown();
     }, 5500);
 });
 
-// Cool guy click handler
 document.addEventListener('DOMContentLoaded', () => {
     const coolGuy = document.getElementById('coolGuy');
-    
     coolGuy.addEventListener('click', () => {
         if (coolGuyClickable && !scaryRevealed) {
             scaryReveal();
@@ -37,18 +36,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// ─── Countdown ────────────────────────────────────────────────────────────────
+
 function startCountdown() {
     updateTimerDisplay(countdownValue);
-    
+
     countdownInterval = setInterval(() => {
         countdownValue--;
         updateTimerDisplay(countdownValue);
-        
-        // Speed up in the last 10 seconds
+
+        // Start bottom-launches at second 25 elapsed (countdown = 59-25 = 34)
+        if (countdownValue === 34 && !bottomLaunchInterval) {
+            startBottomLaunches();
+        }
+
+        // Speed up last 10 seconds
         if (countdownValue === 10) {
             speedMultiplier = 1.6;
         }
-        
+
         if (countdownValue <= 0) {
             clearInterval(countdownInterval);
             countdownValue = 0;
@@ -63,31 +69,34 @@ function startCountdown() {
 
 function updateTimerDisplay(val) {
     const el = document.getElementById('countdownTimer');
-    if (el) {
-        el.textContent = val;
-        if (val <= 10 && val > 0) {
-            el.style.color = '#FF4444';
-            el.style.animation = 'timerPulse 0.5s ease-in-out infinite';
-        }
+    if (!el) return;
+    el.textContent = val;
+    if (val <= 10 && val > 0) {
+        el.style.color = '#FF4444';
+        el.style.animation = 'timerPulse 0.5s ease-in-out infinite';
+    } else {
+        el.style.color = '#FFD700';
+        el.style.animation = '';
     }
 }
+
+// ─── End states ───────────────────────────────────────────────────────────────
 
 function scaryReveal() {
     const coolGuy = document.getElementById('coolGuy');
     const typingText = document.getElementById('typingText');
-    
+
     claysLaunching = false;
     if (countdownInterval) clearInterval(countdownInterval);
-    
+    if (bottomLaunchInterval) clearInterval(bottomLaunchInterval);
+
     setTimeout(() => {
         coolGuy.style.cursor = 'pointer';
-        coolGuy.onclick = () => {
-            window.location.href = 'adventure.html';
-        };
+        coolGuy.onclick = () => { window.location.href = 'adventure.html'; };
     }, 3000);
-    
+
     coolGuy.classList.add('centered');
-    
+
     typingText.textContent = '';
     setTimeout(() => {
         typeText('YOU ARE NOT SAFE!', () => {
@@ -102,13 +111,15 @@ function scaryReveal() {
 function countdownMilestone() {
     const coolGuy = document.getElementById('coolGuy');
     const typingText = document.getElementById('typingText');
-    
+
     claysLaunching = false;
-    
-    coolGuy.classList.add('centered');
+    if (bottomLaunchInterval) clearInterval(bottomLaunchInterval);
+
+    // Disable accidental click on cool guy
     coolGuy.style.pointerEvents = 'none';
     coolGuy.style.cursor = 'default';
-    
+    coolGuy.classList.add('centered');
+
     typingText.textContent = '';
     setTimeout(() => {
         typeText('Nice work! Ready for the Pub?', () => {
@@ -121,45 +132,40 @@ function showChoiceButtons() {
     const buttonContainer = document.createElement('div');
     buttonContainer.className = 'choice-buttons';
     buttonContainer.id = 'choiceButtons';
-    
+
     const yesButton = document.createElement('button');
     yesButton.className = 'choice-button';
     yesButton.textContent = 'YES';
-    yesButton.onclick = () => {
-        window.location.href = 'adventure.html';
-    };
-    
+    yesButton.onclick = () => { window.location.href = 'adventure.html'; };
+
     const noButton = document.createElement('button');
     noButton.className = 'choice-button';
     noButton.textContent = 'NO';
     noButton.onclick = () => {
         buttonContainer.remove();
-        
+
         const coolGuy = document.getElementById('coolGuy');
         coolGuy.classList.remove('centered');
-        
+        coolGuy.style.pointerEvents = '';
+        coolGuy.style.cursor = '';
+
         document.getElementById('typingText').textContent = '';
         claysLaunching = true;
         countdownFinished = false;
         countdownValue = 59;
         speedMultiplier = 1;
-        
-        // Update timer display
-        const timerEl = document.getElementById('countdownTimer');
-        if (timerEl) {
-            timerEl.style.color = '#FFD700';
-            timerEl.style.animation = '';
-        }
-        
+        bottomLaunchInterval = null;
+
         startCountdown();
     };
-    
+
     buttonContainer.appendChild(yesButton);
     buttonContainer.appendChild(noButton);
     document.body.appendChild(buttonContainer);
 }
 
-// Typing effect
+// ─── Typing effect ────────────────────────────────────────────────────────────
+
 function typeText(text, callback) {
     const typingElement = document.getElementById('typingText');
     let index = 0;
@@ -170,7 +176,6 @@ function typeText(text, callback) {
             const currentText = typingElement.textContent;
             const beforeBreak = currentText.substring(0, startLength);
             const afterBreak = currentText.substring(startLength);
-            
             typingElement.innerHTML = beforeBreak + (beforeBreak ? '<br>' : '') + afterBreak + text[index];
             index++;
             setTimeout(type, 100);
@@ -178,108 +183,109 @@ function typeText(text, callback) {
             callback();
         }
     }
-
     type();
 }
 
-// Clay pigeon launching
+// ─── Clay launching ───────────────────────────────────────────────────────────
+
 let clayCountLeft = 0;
 let leftInterval = null;
 
 function launchClayPigeons() {
-    leftInterval = setInterval(() => {
-        if (!claysLaunching) {
+    startLeftRightCycle();
+
+    // Watch for speed change and restart cycle
+    let lastSpeed = speedMultiplier;
+    const speedWatcher = setInterval(() => {
+        if (!claysLaunching) { clearInterval(speedWatcher); return; }
+        if (speedMultiplier !== lastSpeed) {
+            lastSpeed = speedMultiplier;
             clearInterval(leftInterval);
-            return;
+            startLeftRightCycle();
         }
-        
+    }, 500);
+}
+
+function startLeftRightCycle() {
+    leftInterval = setInterval(() => {
+        if (!claysLaunching) { clearInterval(leftInterval); return; }
+
         launchClay('left');
         clayCountLeft++;
-        
+
         if (clayCountLeft >= 5) {
             if (!coolGuyClickable) {
                 coolGuyClickable = true;
                 document.getElementById('coolGuy').style.cursor = 'pointer';
             }
-            
             const delay = Math.round(400 / speedMultiplier);
             setTimeout(() => {
-                if (claysLaunching) {
-                    launchClay('right');
-                }
+                if (claysLaunching) launchClay('right');
             }, delay);
         }
     }, Math.round(2000 / speedMultiplier));
-    
-    // Watch for speed changes and restart interval
-    let lastSpeed = speedMultiplier;
-    const speedWatcher = setInterval(() => {
-        if (!claysLaunching) {
-            clearInterval(speedWatcher);
-            return;
-        }
-        if (speedMultiplier !== lastSpeed) {
-            lastSpeed = speedMultiplier;
-            clearInterval(leftInterval);
-            leftInterval = setInterval(() => {
-                if (!claysLaunching) {
-                    clearInterval(leftInterval);
-                    return;
-                }
-                launchClay('left');
-                const delay = Math.round(400 / speedMultiplier);
-                setTimeout(() => {
-                    if (claysLaunching) launchClay('right');
-                }, delay);
-            }, Math.round(2000 / speedMultiplier));
-        }
-    }, 500);
 }
+
+function startBottomLaunches() {
+    bottomLaunchInterval = setInterval(() => {
+        if (!claysLaunching) { clearInterval(bottomLaunchInterval); return; }
+        launchClay('bottom');
+    }, Math.round(5000 / speedMultiplier));
+}
+
+// ─── Individual clay launch ───────────────────────────────────────────────────
 
 function launchClay(side) {
     const clay = document.createElement('div');
     clay.className = 'clay';
-    
+
     const img = document.createElement('img');
     img.src = 'images/clay1.png';
     clay.appendChild(img);
-    
+
     document.getElementById('clayContainer').appendChild(clay);
-    
-    let startX, startY, horizontalDistance, direction, peakHeight;
-    
+
     const isMobile = window.innerWidth <= 768;
-    
+    let startX, startY, horizontalDistance, direction, peakHeight;
+
     if (side === 'right') {
-        if (isMobile) {
-            startX = window.innerWidth + 80;
-            startY = window.innerHeight + 100;
-            horizontalDistance = -(window.innerWidth * 1.5);
-            peakHeight = window.innerHeight * 0.5;
-        } else {
-            startX = window.innerWidth + 50;
-            startY = window.innerHeight * 0.15;
-            horizontalDistance = -(window.innerWidth * 1.4);
-            peakHeight = window.innerHeight * 0.25;
-        }
+        // Launch from upper-right, travel diagonally down-left
+        // Same logic for mobile and desktop — use top-based positioning
+        startX = window.innerWidth + 50;
+        startY = isMobile ? window.innerHeight * 0.1 : window.innerHeight * 0.15;
+        horizontalDistance = -(window.innerWidth * (isMobile ? 1.3 : 1.4));
+        peakHeight = window.innerHeight * 0.15;
         direction = -1;
+
+        clay.style.left = startX + 'px';
+        clay.style.top = startY + 'px';
+        clay.style.bottom = 'auto';
+
+    } else if (side === 'bottom') {
+        // Launch straight up from random x position along bottom, then drop back
+        startX = window.innerWidth * (0.2 + Math.random() * 0.6); // anywhere 20-80% width
+        startY = window.innerHeight + 60; // below screen
+        horizontalDistance = 0; // straight up
+        peakHeight = window.innerHeight * 0.55;
+        direction = Math.random() > 0.5 ? 1 : -1;
+
+        clay.style.left = startX + 'px';
+        clay.style.bottom = '0px';
+        clay.style.top = 'auto';
+
     } else {
+        // left side
         startX = -100;
         startY = window.innerHeight + 100;
         horizontalDistance = window.innerWidth + 200;
-        direction = 1;
         peakHeight = window.innerHeight * 0.45;
-    }
-    
-    clay.style.left = startX + 'px';
-    if (side === 'right') {
-        clay.style.top = startY + 'px';
-        clay.style.bottom = 'auto';
-    } else {
+        direction = 1;
+
+        clay.style.left = startX + 'px';
         clay.style.bottom = '0px';
         clay.style.top = 'auto';
     }
-    
+
     let rotation = 0;
     let scale = 1;
     let isDestroyed = false;
@@ -289,43 +295,43 @@ function launchClay(side) {
             e.stopPropagation();
             shatterClay(clay);
             isDestroyed = true;
-            
             clayCount++;
             document.getElementById('clayCounter').textContent = clayCount;
         }
     });
 
-    // Speed up duration when in last 10 seconds
-    const baseDuration = side === 'right' ? 4500 : 5000;
-    const duration = Math.round(baseDuration / speedMultiplier);
+    const baseDurations = { left: 5000, right: 4500, bottom: 3500 };
+    const duration = Math.round(baseDurations[side] / speedMultiplier);
     const startTime = Date.now();
 
     function animate() {
-        if (isDestroyed || !claysLaunching) {
-            clay.remove();
-            return;
-        }
+        if (isDestroyed || !claysLaunching) { clay.remove(); return; }
 
         const elapsed = Date.now() - startTime;
         const progress = Math.min(elapsed / duration, 1);
 
-        if (progress >= 1) {
-            clay.remove();
-            return;
-        }
+        if (progress >= 1) { clay.remove(); return; }
 
         const x = startX + (horizontalDistance * progress);
-        
-        let posTop;
+
         if (side === 'right') {
-            // Start upper-right, drift across and downward in a gentle arc
-            const dropAmount = window.innerHeight * 0.75; // total drop from start to end
-            const arcDip = -peakHeight * Math.sin(progress * Math.PI * 0.7); // slight upward bow early
-            posTop = startY + (dropAmount * progress) + arcDip;
+            // Top-based: drift from upper-right downward with slight early upward bow
+            const dropAmount = window.innerHeight * 0.75;
+            const arcDip = -peakHeight * Math.sin(progress * Math.PI * 0.7);
+            const posTop = startY + (dropAmount * progress) + arcDip;
             clay.style.top = posTop + 'px';
             clay.style.bottom = 'auto';
+
+        } else if (side === 'bottom') {
+            // Bottom-based: shoot up then fall — pure parabola
+            const arcProgress = progress < 0.5 ? progress * 2 : 1 + (progress - 0.5) * 3;
+            const yOffset = Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight * 2;
+            const posFromBottom = yOffset - 60; // starts at -60 (below screen), rises
+            clay.style.bottom = posFromBottom + 'px';
+            clay.style.top = 'auto';
+
         } else {
-            // Left side: launch from bottom, arc upward then fall
+            // Left: bottom-based parabola
             const arcProgress = progress < 0.5 ? progress * 2 : 1 + (progress - 0.5) * 3;
             const y = startY - (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight * 2);
             clay.style.bottom = (window.innerHeight - y) + 'px';
@@ -334,7 +340,6 @@ function launchClay(side) {
 
         const shrinkAmount = side === 'right' ? 0.85 : 0.9;
         scale = 1 - (progress * shrinkAmount);
-        
         rotation += 2 * direction;
 
         clay.style.left = x + 'px';
@@ -346,6 +351,8 @@ function launchClay(side) {
     animate();
 }
 
+// ─── Shatter effect ───────────────────────────────────────────────────────────
+
 function shatterClay(clay) {
     const rect = clay.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
@@ -354,11 +361,10 @@ function shatterClay(clay) {
     for (let i = 0; i < 10; i++) {
         const shard = document.createElement('div');
         shard.className = 'clay-shard';
-        
+
         const img = document.createElement('img');
         img.src = 'images/clay1.png';
         shard.appendChild(img);
-        
         document.body.appendChild(shard);
 
         const angle = (Math.PI * 2 * i) / 10 + (Math.random() - 0.5) * 0.5;
@@ -369,32 +375,27 @@ function shatterClay(clay) {
         shard.style.left = centerX + 'px';
         shard.style.top = centerY + 'px';
 
-        let shardX = centerX;
-        let shardY = centerY;
-        let shardVelocityY = velocityY;
-        let rotation = Math.random() * 360;
+        let shardX = centerX, shardY = centerY;
+        let shardVY = velocityY;
+        let rot = Math.random() * 360;
         let opacity = 1;
 
         function animateShard() {
             shardX += velocityX * 0.02;
-            shardY += shardVelocityY * 0.02;
-            shardVelocityY += 5;
-            rotation += 10;
+            shardY += shardVY * 0.02;
+            shardVY += 5;
+            rot += 10;
             opacity -= 0.02;
 
-            if (opacity <= 0) {
-                shard.remove();
-                return;
-            }
+            if (opacity <= 0) { shard.remove(); return; }
 
             shard.style.left = shardX + 'px';
             shard.style.top = shardY + 'px';
-            shard.style.transform = `rotate(${rotation}deg)`;
+            shard.style.transform = `rotate(${rot}deg)`;
             shard.style.opacity = opacity;
 
             requestAnimationFrame(animateShard);
         }
-
         animateShard();
     }
 
