@@ -99,7 +99,7 @@ function scaryReveal() {
 
     typingText.textContent = '';
     setTimeout(() => {
-        typeText('YOU ARE NOT SAFE!', () => {
+        typeText('YOU SHOT ME. YOU ARE NOT SAFE!', () => {
             setTimeout(() => {
                 typingText.innerHTML += '<br>';
                 typeText('YOU MUST BE REMOVED FROM THE SHOOTING RANGE!');
@@ -263,7 +263,7 @@ function launchClay(side) {
 
     } else if (side === 'bottom') {
         // Launch straight up from random x position along bottom, then drop back
-        startX = window.innerWidth * (0.2 + Math.random() * 0.6); // anywhere 20-80% width
+        startX = window.innerWidth * (0.05 + Math.random() * 0.5); // left 5-55% of width, away from Cool Guy
         startY = window.innerHeight + 60; // below screen
         horizontalDistance = 0; // straight up
         peakHeight = window.innerHeight * 0.55;
@@ -300,7 +300,8 @@ function launchClay(side) {
         }
     });
 
-    const baseDurations = { left: 5000, right: 4500, bottom: 3500 };
+    const isMobileDevice = window.innerWidth <= 768;
+    const baseDurations = { left: 5000, right: isMobileDevice ? 2800 : 4500, bottom: 3500 };
     const duration = Math.round(baseDurations[side] / speedMultiplier);
     const startTime = Date.now();
 
