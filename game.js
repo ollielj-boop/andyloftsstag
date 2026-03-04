@@ -46,7 +46,7 @@ function startCountdown() {
         
         // Speed up in the last 10 seconds
         if (countdownValue === 10) {
-            speedMultiplier = 2.5;
+            speedMultiplier = 1.6;
         }
         
         if (countdownValue <= 0) {
@@ -106,6 +106,8 @@ function countdownMilestone() {
     claysLaunching = false;
     
     coolGuy.classList.add('centered');
+    coolGuy.style.pointerEvents = 'none';
+    coolGuy.style.cursor = 'default';
     
     typingText.textContent = '';
     setTimeout(() => {
@@ -255,10 +257,10 @@ function launchClay(side) {
             horizontalDistance = -(window.innerWidth * 1.5);
             peakHeight = window.innerHeight * 0.5;
         } else {
-            startX = window.innerWidth + 150;
-            startY = window.innerHeight + 100;
-            horizontalDistance = -(window.innerWidth * 1.3);
-            peakHeight = window.innerHeight * 0.45;
+            startX = window.innerWidth + 50;
+            startY = window.innerHeight * 0.15;
+            horizontalDistance = -(window.innerWidth * 1.4);
+            peakHeight = window.innerHeight * 0.25;
         }
         direction = -1;
     } else {
@@ -270,7 +272,13 @@ function launchClay(side) {
     }
     
     clay.style.left = startX + 'px';
-    clay.style.bottom = '0px';
+    if (side === 'right') {
+        clay.style.top = startY + 'px';
+        clay.style.bottom = 'auto';
+    } else {
+        clay.style.bottom = '0px';
+        clay.style.top = 'auto';
+    }
     
     let rotation = 0;
     let scale = 1;
@@ -307,16 +315,29 @@ function launchClay(side) {
         }
 
         const x = startX + (horizontalDistance * progress);
-        const arcProgress = progress < 0.5 ? progress * 2 : 1 + (progress - 0.5) * 3;
-        const y = startY - (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight * 2);
+        
+        let posTop;
+        if (side === 'right') {
+            // Start upper-right, drift across and downward in a gentle arc
+            const dropAmount = window.innerHeight * 0.75; // total drop from start to end
+            const arcDip = -peakHeight * Math.sin(progress * Math.PI * 0.7); // slight upward bow early
+            posTop = startY + (dropAmount * progress) + arcDip;
+            clay.style.top = posTop + 'px';
+            clay.style.bottom = 'auto';
+        } else {
+            // Left side: launch from bottom, arc upward then fall
+            const arcProgress = progress < 0.5 ? progress * 2 : 1 + (progress - 0.5) * 3;
+            const y = startY - (Math.sin(Math.min(arcProgress, 1) * Math.PI) * peakHeight * 2);
+            clay.style.bottom = (window.innerHeight - y) + 'px';
+            clay.style.top = 'auto';
+        }
 
-        const shrinkAmount = side === 'right' ? 0.92 : 0.9;
+        const shrinkAmount = side === 'right' ? 0.85 : 0.9;
         scale = 1 - (progress * shrinkAmount);
         
         rotation += 2 * direction;
 
         clay.style.left = x + 'px';
-        clay.style.bottom = (window.innerHeight - y) + 'px';
         clay.style.transform = `rotate(${rotation}deg) scale(${scale})`;
 
         requestAnimationFrame(animate);

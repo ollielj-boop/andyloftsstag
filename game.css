@@ -106,10 +106,10 @@ body {
 /* Cool Guy Rising */
 .cool-guy {
     position: fixed;
-    bottom: 0;
+    bottom: -80px;
     right: 0;
-    width: 300px;
-    height: 600px;
+    width: 220px;
+    height: 440px;
     z-index: 50;
     transform: translateY(100%);
     transition: transform 2s ease-out;
@@ -206,9 +206,10 @@ body {
     }
 
     .cool-guy {
-        width: 100px;
-        height: 200px;
+        width: 80px;
+        height: 160px;
         right: 0;
+        bottom: -40px;
     }
 
     .clay {
@@ -228,29 +229,42 @@ body {
     right: 50% !important;
     bottom: 50% !important;
     transform: translate(50%, 50%) !important;
-    width: 700px !important;
-    height: 700px !important;
+    width: 420px !important;
+    height: 420px !important;
     transition: all 2s ease-out !important;
     z-index: 100 !important;
 }
 
 @media (max-width: 768px) {
     .cool-guy.centered {
-        width: 400px !important;
-        height: 400px !important;
-        bottom: 70% !important;
+        width: 280px !important;
+        height: 280px !important;
+        bottom: 55% !important;
     }
 }
 
 /* Choice buttons */
 .choice-buttons {
     position: fixed;
-    bottom: 50px;
+    bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 40px;
+    gap: 20px;
     z-index: 110;
+}
+
+@media (max-width: 768px) {
+    .choice-buttons {
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        gap: 15px;
+    }
+    .choice-button {
+        padding: 12px 24px;
+        font-size: 18px;
+    }
 }
 
 .choice-button {
