@@ -7,52 +7,72 @@
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
         * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            background: #0f380f;
+            background: #0a200a;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
+            min-height: 100svh;
             font-family: 'Press Start 2P', monospace;
             overflow: hidden;
         }
+
+        /* ── Shell: fixed Game Boy aspect ratio with pillarboxing ── */
         #shell {
             position: relative;
-            width: min(400px, 100vw);
-            height: min(680px, 100svh);
+            /* Fixed internal resolution — CSS scales it to fit */
+            width: 360px;
+            height: 640px;
             background: #0f380f;
             border: 3px solid #306230;
-            box-shadow: 0 0 0 3px #0f380f, 0 0 0 6px #8bac0f, 0 0 30px rgba(139,172,15,0.3);
+            box-shadow: 0 0 0 3px #0a200a, 0 0 0 6px #8bac0f,
+                        0 0 40px rgba(139,172,15,0.25);
             overflow: hidden;
-            image-rendering: pixelated;
+            /* Scale down to fit any screen while preserving aspect ratio */
+            transform-origin: center center;
         }
+
         .screen { position: absolute; inset: 0; display: none; }
         .screen.active { display: block; }
-        #homeScreen img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+
+        #homeScreen img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            image-rendering: pixelated;
+        }
         #playBtn {
             position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
             background: #0f380f; color: #9bbc0f; border: 3px solid #9bbc0f;
             font-family: 'Press Start 2P', monospace; font-size: 16px;
             padding: 12px 36px; cursor: pointer; letter-spacing: 4px;
             box-shadow: 3px 3px 0 #306230; animation: blink 0.8s step-end infinite; z-index: 10;
+            white-space: nowrap;
         }
         @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
         #playBtn:hover { animation: none; background: #306230; }
+
         #gameCanvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; }
+
         #puttBtn {
-            position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%);
+            position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
             background: #0f380f; color: #9bbc0f; border: 3px solid #9bbc0f;
             font-family: 'Press Start 2P', monospace; font-size: 13px;
-            padding: 10px 22px; cursor: pointer; letter-spacing: 2px;
-            box-shadow: 3px 3px 0 #306230, 0 0 8px rgba(155,188,15,0.4); z-index: 10; display: none;
-            user-select: none; -webkit-tap-highlight-color: transparent; touch-action: manipulation;
-            width: auto; max-width: 160px; text-align: center;
+            padding: 9px 24px; cursor: pointer; letter-spacing: 2px;
+            box-shadow: 3px 3px 0 #306230, 0 0 10px rgba(155,188,15,0.5);
+            z-index: 10; display: none;
+            user-select: none; -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation; white-space: nowrap;
         }
         #puttBtn:active { transform: translateX(-50%) translate(2px,2px); box-shadow: 1px 1px 0 #306230; }
+
+        /* scanlines */
         #shell::after {
             content:''; position:absolute; inset:0; pointer-events:none;
-            background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
-            z-index:50;
+            background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px,
+                rgba(0,0,0,0.06) 3px, rgba(0,0,0,0.06) 4px);
+            z-index: 100;
         }
     </style>
 </head>
@@ -67,24 +87,49 @@
         <button id="puttBtn">PUTT!</button>
     </div>
 </div>
+
 <script>
+// ── Fixed canvas dimensions (shell is always 360×640)
+const CW = 360;
+const CH = 640;
+
+// ── Scale shell to fit viewport with pillarboxing
+function scaleShell() {
+    const shell = document.getElementById('shell');
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const scale = Math.min(vw / CW, vh / CH);
+    shell.style.transform = `scale(${scale})`;
+    shell.style.left  = Math.round((vw - CW * scale) / 2) + 'px';
+    shell.style.top   = Math.round((vh - CH * scale) / 2) + 'px';
+    shell.style.position = 'fixed';
+}
+scaleShell();
+window.addEventListener('resize', scaleShell);
+
 // ── Palette
-const GB = { darkest:'#0f380f', dark:'#306230', mid:'#8bac0f', light:'#9bbc0f', lightest:'#c4d89a', cream:'#e0f0a0' };
+const GB = {
+    darkest: '#0f380f', dark: '#306230',
+    mid: '#8bac0f',     light: '#9bbc0f',
+    lightest: '#c4d89a'
+};
 
-// ── Level data: hole widths shrink each level, ball = 8px radius
-const LEVEL_HOLES = [80, 62, 46, 32, 22]; // hole widths px
-const BALL_R = 7;
-const SHELF_H = 18;
-const HUD_H   = 24;
-const BTN_H   = 52;
+// ── Level data
+// Final hole (index 4) is bigger now: 30px instead of 22px
+const LEVEL_HOLES = [80, 62, 46, 34, 30];
+const BALL_R       = 7;
+const SHELF_H      = 18;
+const HUD_H        = 28;
+const BTN_H        = 50;
+const GAME_H       = CH - HUD_H - BTN_H;  // 562px
 const ARROW_SPEED_BASE = 3.0;
-const PUTT_SPEED = 5.5; // ball travel speed along level
+const PUTT_SPEED   = 5.5;
 
-let canvas, ctx, W, H, GA; // GA = game area height
+let canvas, ctx;
 
 // ── State
 let level       = 0;
-let state       = 'idle'; // idle|rolling|falling|gameover|win|miss
+let state       = 'idle';  // idle|rolling|falling|miss|gameover|win
 let arrowX      = 0;
 let arrowDir    = 1;
 let arrowSpeed  = ARROW_SPEED_BASE;
@@ -92,216 +137,190 @@ let ballX       = 0;
 let ballY       = 0;
 let ballVX      = 0;
 let ballVY      = 0;
-let putterSwing = 0;     // 0=ready, 1=swinging
 let swingTimer  = 0;
+let putterSwing = 0;
 let flashTimer  = 0;
-let overlayAlpha= 0;
-let resultText  = '';
+let totalHoles  = 5;
+let extraMode   = false;
 
-// Computed layout
-let shelves = []; // {y, holeLeft, holeRight, side:'left'|'right'}
-let totalHoles  = 0;  // counter starting at 5
-let extraMode   = false; // true after 5 holes completed
-let extraOffset = 0;  // scroll offset for extra levels
-let menuChoice  = null; // 'retry'|'home' highlight on gameover
+// Button hit-areas (set in drawOverlays, used in tap handler)
+let btnRects = {};
 
+let shelves = [];
+
+// ── Init
 function startGame() {
     document.getElementById('homeScreen').classList.remove('active');
     document.getElementById('gameScreen').classList.add('active');
-    document.getElementById('puttBtn').style.display = 'block';
 
     canvas = document.getElementById('gameCanvas');
-    const shell = document.getElementById('shell');
-    W = shell.clientWidth;
-    H = shell.clientHeight;
-    canvas.width  = W;
-    canvas.height = H;
+    canvas.width  = CW;
+    canvas.height = CH;
     ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
-    GA = H - HUD_H - BTN_H;
+    document.getElementById('puttBtn').style.display = 'block';
 
-    buildLayout();
-    initLevel(0);
+    buildLayout(false);
+    initLevel(0, false);
 
     document.addEventListener('keydown', e => {
         if (e.code === 'Space') { e.preventDefault(); onPutt(); }
     });
-    document.getElementById('puttBtn').addEventListener('click', onPutt);
-    document.getElementById('puttBtn').addEventListener('touchend', e => { e.preventDefault(); onPutt(); });
-    canvas.addEventListener('click', e => {
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = W / rect.width;
-        const scaleY = H / rect.height;
-        const cx = (e.clientX - rect.left) * scaleX;
-        const cy = (e.clientY - rect.top) * scaleY;
-        handleHUDClick(cx, cy);
-        onCanvasTap(cx, cy);
-    });
-    canvas.addEventListener('touchend', e => {
-        e.preventDefault();
-        const rect = canvas.getBoundingClientRect();
-        const scaleX = W / rect.width;
-        const scaleY = H / rect.height;
-        const t = e.changedTouches[0];
-        const cx = (t.clientX - rect.left) * scaleX;
-        const cy = (t.clientY - rect.top) * scaleY;
-        handleHUDClick(cx, cy);
-        onCanvasTap(cx, cy);
-    });
+    document.getElementById('puttBtn').addEventListener('click', handlePuttBtn);
+    document.getElementById('puttBtn').addEventListener('touchend', e => { e.preventDefault(); handlePuttBtn(); });
+    canvas.addEventListener('click',    e => handleCanvasTap(tapCoords(e, 'click')));
+    canvas.addEventListener('touchend', e => { e.preventDefault(); handleCanvasTap(tapCoords(e, 'touch')); });
 
     requestAnimationFrame(loop);
 }
 
-function buildLayout(extraShelves) {
-    // 5 shelves evenly distributed in the game area
-    if (!extraShelves) shelves = [];
-    const slotH = GA / 5;
-    const count = extraShelves ? 5 : 5;
-    const offsetIdx = extraShelves ? 5 : 0;
-    const newShelves = [];
-    for (let i = 0; i < 5; i++) {
-        const shelfY = Math.round(HUD_H + slotH * (i + 1) - SHELF_H);
-        const hw = extraShelves ? LEVEL_HOLES[4] : LEVEL_HOLES[i];
-        const side = (i + offsetIdx) % 2 === 0 ? 'left' : 'right';
-        let holeLeft;
-        if (extraShelves) {
-            // Random position but never within 15% of either wall or putter
-            const minX = Math.round(W * 0.20);
-            const maxX = Math.round(W * 0.80) - hw;
-            holeLeft = minX + Math.floor(Math.random() * (maxX - minX));
-        } else if (i === 4) {
-            // Final hole: 70% along from putter
-            if (side === 'left') {
-                holeLeft = Math.round(W * 0.70) - hw;
-            } else {
-                holeLeft = Math.round(W * 0.30);
-            }
-        } else {
-            if (side === 'left') {
-                holeLeft = W - hw - 26;
-            } else {
-                holeLeft = 26;
-            }
-        }
-        newShelves.push({ y: shelfY, holeLeft, holeRight: holeLeft + hw, side });
-    }
-    if (extraShelves) {
-        shelves = newShelves;
+function tapCoords(e, type) {
+    const rect = canvas.getBoundingClientRect();
+    // canvas is always CW×CH but CSS may scale it — use actual rendered size
+    const scaleX = CW / rect.width;
+    const scaleY = CH / rect.height;
+    const src = type === 'touch' ? e.changedTouches[0] : e;
+    return {
+        x: (src.clientX - rect.left) * scaleX,
+        y: (src.clientY - rect.top)  * scaleY
+    };
+}
+
+function inRect(p, r) {
+    return p && r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y && p.y <= r.y + r.h;
+}
+
+// ── PUTT button (HTML element): handles both game putt + overlays
+function handlePuttBtn() {
+    if (state === 'win') {
+        doKeepPlaying();
+    } else if (state === 'gameover') {
+        doRetry();
     } else {
-        shelves = newShelves;
+        onPutt();
     }
 }
 
+// ── Canvas tap: handles overlay buttons + HUD home link
+function handleCanvasTap(p) {
+    // HUD home tap (left half of top bar)
+    if (p.y <= HUD_H && p.x < CW / 2) {
+        window.location.href = 'index.html';
+        return;
+    }
+    if (state === 'gameover') {
+        if (inRect(p, btnRects.retry))  { doRetry(); return; }
+        if (inRect(p, btnRects.goHome)) { window.location.href = 'index.html'; return; }
+    }
+    if (state === 'win') {
+        if (inRect(p, btnRects.keepPlaying)) { doKeepPlaying(); return; }
+        if (inRect(p, btnRects.goHome))      { window.location.href = 'index.html'; return; }
+    }
+}
+
+function doRetry() {
+    buildLayout(false);
+    initLevel(0, false);
+}
+
+function doKeepPlaying() {
+    extraMode  = true;
+    totalHoles = totalHoles; // keep current count
+    buildLayout(true);
+    initLevel(0, true);
+}
+
+// ── Layout
+function buildLayout(extra) {
+    shelves = [];
+    const slotH = GAME_H / 5;
+    for (let i = 0; i < 5; i++) {
+        const shelfY = Math.round(HUD_H + slotH * (i + 1) - SHELF_H);
+        const hw = extra ? LEVEL_HOLES[4] : LEVEL_HOLES[i];
+        // Putter side alternates; in extra mode continue alternating from previous set
+        const parity = extra ? (i % 2 === 0 ? 'right' : 'left') : (i % 2 === 0 ? 'left' : 'right');
+        const side = parity;
+        let holeLeft;
+        if (extra) {
+            // Random, 20–80% width, never within 15% of each wall
+            const minX = Math.round(CW * 0.20);
+            const maxX = Math.round(CW * 0.80) - hw;
+            holeLeft = minX + Math.floor(Math.random() * Math.max(1, maxX - minX));
+        } else if (i === 4) {
+            // Level 5: 70% along from putter side
+            holeLeft = side === 'left'
+                ? Math.round(CW * 0.70) - hw
+                : Math.round(CW * 0.30);
+        } else {
+            holeLeft = side === 'left' ? CW - hw - 26 : 26;
+        }
+        shelves.push({ y: shelfY, holeLeft, holeRight: holeLeft + hw, side });
+    }
+}
+
+// ── Level init
 function initArrow(lv) {
     const s = shelves[lv];
     arrowX    = ballX;
     arrowDir  = s.side === 'left' ? 1 : -1;
-    arrowSpeed = extraMode
-        ? ARROW_SPEED_BASE + 4 * 0.9
-        : ARROW_SPEED_BASE + lv * 0.9;
+    arrowSpeed = ARROW_SPEED_BASE + (extraMode ? 4 : lv) * 0.9;
 }
 
 function initLevel(lv, keepTotal) {
-    level = lv;
-    state = 'idle';
+    level       = lv;
+    state       = 'idle';
     putterSwing = 0;
     swingTimer  = 0;
     flashTimer  = 0;
-    if (!keepTotal) { totalHoles = 5; extraMode = false; extraOffset = 0; }
-
-    const s = shelves[lv];
-    // Ball starts at putter's feet
-    if (s.side === 'left') {
-        ballX = 38;
-    } else {
-        ballX = W - 38;
-    }
-    ballY  = s.y - BALL_R;
     ballVX = 0;
     ballVY = 0;
-
-    // Arrow starts near ball, sweeps to far wall
+    if (!keepTotal) { totalHoles = 5; extraMode = false; }
+    const s = shelves[lv];
+    ballX = s.side === 'left' ? 40 : CW - 40;
+    ballY = s.y - BALL_R;
     initArrow(lv);
 }
 
+// ── Putt
 function onPutt() {
-    if (state === 'gameover' || state === 'win') { resetGame(); return; }
     if (state !== 'idle') return;
-
     const s = shelves[level];
     const inHole = arrowX >= s.holeLeft && arrowX <= s.holeRight;
-
     putterSwing = 1;
     swingTimer  = 0;
     state = 'rolling';
-
     if (inHole) {
-        // Ball rolls toward hole
         ballVX = s.side === 'left' ? PUTT_SPEED : -PUTT_SPEED;
     } else {
-        // Miss — ball rolls toward wall and stops
-        ballVX = s.side === 'left' ? PUTT_SPEED * 0.6 : -PUTT_SPEED * 0.6;
-        state  = 'miss';
+        ballVX = s.side === 'left' ? PUTT_SPEED * 0.5 : -PUTT_SPEED * 0.5;
+        state = 'miss';
         flashTimer = 80;
     }
 }
 
-function onCanvasTap(cx, cy) {
-    if (state === 'gameover') {
-        // Two buttons: retry (top) and go home (bottom)
-        const midY = H / 2;
-        if (cy && cy > midY + 10 && cy < midY + 50) { window.location.href = 'index.html'; return; }
-        resetGame();
-    }
-    if (state === 'win') {
-        // Two buttons: keep playing (top) and go home (bottom)
-        const midY = H / 2;
-        if (cy && cy > midY + 50 && cy < midY + 90) { window.location.href = 'index.html'; return; }
-        if (cy && cy > midY + 10 && cy < midY + 50) {
-            extraMode = true;
-            totalHoles = 5;
-            buildLayout(true);
-            initLevel(0, true);
-        }
-    }
-}
-
-function resetGame() { buildLayout(false); initLevel(0, false); }
-
-// ── Main loop
-function loop() {
-    update();
-    draw();
-    requestAnimationFrame(loop);
-}
-
+// ── Update
 function update() {
     swingTimer++;
 
     if (state === 'idle') {
-        // Sweep arrow
-        const s = shelves[level];
-        const minX = s.side === 'left' ? ballX : 4;
-        const maxX = s.side === 'left' ? W - 4 : ballX;
+        const s   = shelves[level];
+        const min = s.side === 'left' ? ballX : 4;
+        const max = s.side === 'left' ? CW - 4 : ballX;
         arrowX += arrowDir * arrowSpeed;
-        if (arrowX >= maxX) { arrowX = maxX; arrowDir = -1; }
-        if (arrowX <= minX) { arrowX = minX; arrowDir =  1; }
+        if (arrowX >= max) { arrowX = max; arrowDir = -1; }
+        if (arrowX <= min) { arrowX = min; arrowDir =  1; }
     }
 
     if (state === 'rolling') {
         ballX += ballVX;
         const s = shelves[level];
-        // Check if ball reaches hole
-        const ballCenterOverHole = ballX >= s.holeLeft + BALL_R && ballX <= s.holeRight - BALL_R;
-        if (ballCenterOverHole) {
-            // Start falling
-            state  = 'falling';
+        if (ballX > s.holeLeft + BALL_R && ballX < s.holeRight - BALL_R) {
+            state = 'falling';
             ballVY = 2;
-            ballVX *= 0.3; // slow horizontal as it drops in
+            ballVX *= 0.2;
         }
-        // Hit wall — shouldn't happen on good shot but just in case
-        if (ballX < BALL_R || ballX > W - BALL_R) {
+        if (ballX < BALL_R || ballX > CW - BALL_R) {
             state = 'miss';
             flashTimer = 80;
             ballVX = 0;
@@ -311,62 +330,52 @@ function update() {
     if (state === 'miss') {
         ballX += ballVX;
         ballVX *= 0.88;
-        flashTimer--;
-        if (flashTimer <= 0) {
-            state = 'gameover';
-        }
+        if (flashTimer > 0) flashTimer--;
+        if (flashTimer === 0) state = 'gameover';
     }
 
     if (state === 'falling') {
-        ballX += ballVX;
-        ballVY += 0.4; // gravity
+        ballVY += 0.4;
         ballY  += ballVY;
-
+        ballX  += ballVX;
         if (level < 4) {
             const nextShelf = shelves[level + 1];
             if (ballY >= nextShelf.y - BALL_R) {
                 ballY  = nextShelf.y - BALL_R;
-                ballVY = 0;
                 ballVX = 0;
-                // Move to next level
-                level++;
+                ballVY = 0;
                 totalHoles++;
-                // Reposition ball at putter for next level
+                level++;
                 const ns = shelves[level];
-                ballX  = ns.side === 'left' ? 38 : W - 38;
-                ballY  = ns.y - BALL_R;
+                ballX = ns.side === 'left' ? 40 : CW - 40;
+                ballY = ns.y - BALL_R;
                 initLevel(level, true);
             }
         } else {
-            // Level 5 — ball falls off bottom = win
-            if (ballY > H) {
+            if (ballY > CH) {
+                totalHoles++;
                 if (extraMode) {
-                    // Keep playing: build new shelves, continue
-                    totalHoles++;
                     buildLayout(true);
-                    level = 0;
-                    const ns = shelves[0];
-                    ballX = ns.side === 'left' ? 38 : W - 38;
-                    ballY = ns.y - BALL_R;
-                    ballVX = 0; ballVY = 0;
-                    initArrow(0);
-                    state = 'idle';
+                    initLevel(0, true);
                 } else {
                     state = 'win';
                 }
             }
         }
     }
-
-    if (flashTimer > 0 && state !== 'miss') flashTimer--;
 }
 
-// ── Drawing
-function draw() {
-    // Background
-    ctx.fillStyle = GB.lightest;
-    ctx.fillRect(0, 0, W, H);
+// ── Loop
+function loop() {
+    update();
+    draw();
+    requestAnimationFrame(loop);
+}
 
+// ── Draw
+function draw() {
+    ctx.fillStyle = GB.lightest;
+    ctx.fillRect(0, 0, CW, CH);
     drawShelves();
     drawBall();
     drawArrow();
@@ -377,345 +386,210 @@ function draw() {
 
 function drawShelves() {
     for (let i = 0; i < 5; i++) {
-        const s = shelves[i];
-        // Left shelf segment
+        const s  = shelves[i];
+        const hl = s.holeLeft;
+        const hr = s.holeRight;
+        const hw = hr - hl;
+
+        // Left shelf block
         ctx.fillStyle = GB.darkest;
-        ctx.fillRect(0, s.y, s.holeLeft, SHELF_H);
-        // Right shelf segment
-        ctx.fillRect(s.holeRight, s.y, W - s.holeRight, SHELF_H);
+        ctx.fillRect(0, s.y, hl, SHELF_H);
+        // Right shelf block
+        ctx.fillRect(hr, s.y, CW - hr, SHELF_H);
 
-        // Shelf top highlight line
+        // Top highlight on solid parts
         ctx.fillStyle = GB.dark;
-        ctx.fillRect(0, s.y, s.holeLeft, 2);
-        ctx.fillRect(s.holeRight, s.y, W - s.holeRight, 2);
+        ctx.fillRect(0, s.y, hl, 2);
+        ctx.fillRect(hr, s.y, CW - hr, 2);
 
-        // ── THE HOLE: a dark gap with visible edges ──
-        // Dark void inside hole
+        // Hole: same as background colour
         ctx.fillStyle = GB.lightest;
-        ctx.fillRect(s.holeLeft, s.y, s.holeRight - s.holeLeft, SHELF_H);
-        // Hole left wall (bright edge)
-        ctx.fillStyle = GB.mid;
-        ctx.fillRect(s.holeLeft - 2, s.y, 2, SHELF_H);
-        // Hole right wall
-        ctx.fillStyle = GB.mid;
-        ctx.fillRect(s.holeRight, s.y, 2, SHELF_H);
-        // Hole top lip shadow
-        ctx.fillStyle = GB.dark;
-        ctx.fillRect(s.holeLeft, s.y, s.holeRight - s.holeLeft, 2);
+        ctx.fillRect(hl, s.y, hw, SHELF_H);
 
-        // ── Flag: pole on the far side from the putter ──
-        const holeMid = s.holeLeft + (s.holeRight - s.holeLeft) / 2;
-        const poleX   = s.side === 'left' ? s.holeRight + 8 : s.holeLeft - 8;
-        const poleTopY = s.y - 22;
-        // Pole
+        // Hole edge walls (bright lines)
+        ctx.fillStyle = GB.mid;
+        ctx.fillRect(hl - 2, s.y, 2, SHELF_H);
+        ctx.fillRect(hr,     s.y, 2, SHELF_H);
+
+        // Hole top lip (dark line)
+        ctx.fillStyle = GB.dark;
+        ctx.fillRect(hl, s.y, hw, 2);
+
+        // ── Flag behind hole on far side from putter ──
+        const poleX = s.side === 'left' ? hr + 10 : hl - 10;
+        const poleTop = s.y - 20;
         ctx.fillStyle = GB.darkest;
-        ctx.fillRect(poleX - 1, poleTopY, 2, 22);
-        // Flag triangle
+        ctx.fillRect(poleX - 1, poleTop, 2, 20);
         ctx.fillStyle = GB.dark;
         ctx.beginPath();
         if (s.side === 'left') {
-            // flag flies left (away from putter)
-            ctx.moveTo(poleX,      poleTopY);
-            ctx.lineTo(poleX - 12, poleTopY + 5);
-            ctx.lineTo(poleX,      poleTopY + 10);
+            ctx.moveTo(poleX, poleTop);
+            ctx.lineTo(poleX - 11, poleTop + 5);
+            ctx.lineTo(poleX, poleTop + 10);
         } else {
-            ctx.moveTo(poleX,      poleTopY);
-            ctx.lineTo(poleX + 12, poleTopY + 5);
-            ctx.lineTo(poleX,      poleTopY + 10);
+            ctx.moveTo(poleX, poleTop);
+            ctx.lineTo(poleX + 11, poleTop + 5);
+            ctx.lineTo(poleX, poleTop + 10);
         }
-        ctx.closePath();
-        ctx.fill();
-        ctx.strokeStyle = GB.darkest;
-        ctx.lineWidth = 1;
-        ctx.stroke();
-
-
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = GB.darkest; ctx.lineWidth = 1; ctx.stroke();
     }
 }
 
 function drawBall() {
     if (state === 'win') return;
-    const x = Math.round(ballX);
-    const y = Math.round(ballY);
-
-    // Shadow
-    ctx.fillStyle = 'rgba(0,0,0,0.25)';
-    ctx.beginPath();
-    ctx.ellipse(x + 2, y + BALL_R - 1, BALL_R, 3, 0, 0, Math.PI*2);
-    ctx.fill();
-
-    // Ball body
+    const x = Math.round(ballX), y = Math.round(ballY);
+    ctx.fillStyle = 'rgba(0,0,0,0.2)';
+    ctx.beginPath(); ctx.ellipse(x + 2, y + BALL_R, BALL_R, 3, 0, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = GB.lightest;
-    ctx.beginPath();
-    ctx.arc(x, y, BALL_R, 0, Math.PI*2);
-    ctx.fill();
-
-    // Ball outline
-    ctx.strokeStyle = GB.darkest;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(x, y, BALL_R, 0, Math.PI*2);
-    ctx.stroke();
-
-    // Dimple lines
-    ctx.strokeStyle = GB.mid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.arc(x, y, BALL_R - 2, Math.PI*0.2, Math.PI*0.8);
-    ctx.stroke();
-
-    // Shine
-    ctx.fillStyle = 'rgba(255,255,255,0.7)';
-    ctx.fillRect(x - 3, y - 5, 3, 2);
+    ctx.beginPath(); ctx.arc(x, y, BALL_R, 0, Math.PI*2); ctx.fill();
+    ctx.strokeStyle = GB.darkest; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, BALL_R, 0, Math.PI*2); ctx.stroke();
+    ctx.strokeStyle = GB.mid; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(x, y, BALL_R - 2, 0.2, Math.PI - 0.2); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.fillRect(x - 3, y - 5, 3, 2);
 }
 
 function drawArrow() {
     if (state !== 'idle') return;
-
-    const s     = shelves[level];
-    const arrowY = s.y - 14; // just above shelf
-    const ax     = Math.round(arrowX);
-
-    // Downward-pointing triangle arrow — no line
+    const s  = shelves[level];
+    const ay = s.y - 14;
+    const ax = Math.round(arrowX);
     const aw = 10, ah = 12;
+    // Downward-pointing triangle
     ctx.fillStyle = GB.darkest;
     ctx.beginPath();
-    ctx.moveTo(ax,      arrowY);       // tip (bottom)
-    ctx.lineTo(ax - aw, arrowY - ah);  // top-left
-    ctx.lineTo(ax + aw, arrowY - ah);  // top-right
-    ctx.closePath();
-    ctx.fill();
-
-    // Arrow outline
-    ctx.strokeStyle = GB.mid;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    // Highlight hole zone with subtle glow
-    ctx.fillStyle = 'rgba(139,172,15,0.2)';
-    ctx.fillRect(s.holeLeft, s.y - 22, s.holeRight - s.holeLeft, 22);
+    ctx.moveTo(ax, ay);
+    ctx.lineTo(ax - aw, ay - ah);
+    ctx.lineTo(ax + aw, ay - ah);
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = GB.mid; ctx.lineWidth = 1; ctx.stroke();
+    // Hole zone highlight
+    ctx.fillStyle = 'rgba(139,172,15,0.18)';
+    ctx.fillRect(s.holeLeft, s.y - 20, s.holeRight - s.holeLeft, 20);
 }
 
 function drawPutter() {
-    // Only draw on active level
-    const s    = shelves[level];
-    const side = s.side;
-    const groundY = s.y;
-    const swing   = putterSwing === 1 && swingTimer < 25;
-
-    // Base X centred on putter's foot position
-    const baseX = side === 'left' ? 20 : W - 20;
-    const facingRight = side === 'left';
-
+    if (state === 'win' || state === 'gameover') return;
+    const s     = shelves[level];
+    const swing = putterSwing === 1 && swingTimer < 25;
+    const baseX = s.side === 'left' ? 20 : CW - 20;
     ctx.save();
-    ctx.translate(baseX, groundY);
-    if (!facingRight) ctx.scale(-1, 1); // flip for right-side putter
-
+    ctx.translate(baseX, s.y);
+    if (s.side === 'right') ctx.scale(-1, 1);
     drawAndyPutter(swing);
-
     ctx.restore();
 }
 
 function drawAndyPutter(swing) {
-    // Detailed pixel-art Andy character
-    // Drawn facing RIGHT. Origin = (0, 0) = ground level at feet centre.
+    const D  = GB.darkest;
+    const M  = GB.mid;
+    const L  = GB.lightest;
+    const W2 = '#e8f4c0';
 
-    const D  = GB.darkest;   // #0f380f - dark
-    const M  = GB.mid;       // #8bac0f - mid
-    const L  = GB.lightest;  // #c4d89a - light (skin/shirt)
-    const W2 = '#e8f4c0';    // near-white highlight
-
-    // ─ Shoes ─
+    // Shoes
     ctx.fillStyle = D;
-    ctx.fillRect(-8, -5,  7, 5);   // left shoe
-    ctx.fillRect( 1, -5,  8, 5);   // right shoe
-    // shoe toe highlight
+    ctx.fillRect(-8,-5,7,5); ctx.fillRect(1,-5,8,5);
     ctx.fillStyle = M;
-    ctx.fillRect(-8, -5, 7, 1);
-    ctx.fillRect( 1, -5, 8, 1);
+    ctx.fillRect(-8,-5,7,1); ctx.fillRect(1,-5,8,1);
 
-    // ─ Trousers ─
+    // Trousers
     ctx.fillStyle = D;
-    ctx.fillRect(-7, -20, 6, 16);  // left leg
-    ctx.fillRect( 1, -20, 6, 16);  // right leg
-    ctx.fillRect(-7, -22, 14, 4);  // hip/waist band
-    // trouser crease
-    ctx.fillStyle = M;
-    ctx.fillRect(-5, -18, 2, 10);
+    ctx.fillRect(-7,-20,6,16); ctx.fillRect(1,-20,6,16);
+    ctx.fillRect(-7,-22,14,4);
+    ctx.fillStyle = M; ctx.fillRect(-5,-18,2,10);
 
-    // ─ Belt ─
-    ctx.fillStyle = '#0a2a0a';
-    ctx.fillRect(-8, -23, 16, 3);
-    ctx.fillStyle = M;
-    ctx.fillRect(-1, -23, 3, 3);  // buckle
+    // Belt
+    ctx.fillStyle = '#0a2a0a'; ctx.fillRect(-8,-23,16,3);
+    ctx.fillStyle = M; ctx.fillRect(-1,-23,3,3);
 
-    // ─ Shirt / torso ─
-    ctx.fillStyle = M;
-    ctx.fillRect(-8, -38, 16, 16); // body
-    // V-neck detail
-    ctx.fillStyle = L;
-    ctx.fillRect(-2, -38, 4, 5);
-    ctx.fillStyle = D;
-    ctx.fillRect(-1, -37, 2, 4);
+    // Shirt
+    ctx.fillStyle = M; ctx.fillRect(-8,-38,16,16);
+    ctx.fillStyle = L; ctx.fillRect(-2,-38,4,5);
+    ctx.fillStyle = D; ctx.fillRect(-1,-37,2,4);
+    ctx.fillStyle = D; ctx.fillRect(-7,-35,5,4);
+    ctx.fillStyle = M; ctx.fillRect(-6,-34,3,2);
+    ctx.fillStyle = L; ctx.fillRect(-4,-40,8,4);
 
-    // Shirt pocket
-    ctx.fillStyle = D;
-    ctx.fillRect(-7, -35, 5, 4);
-    ctx.fillStyle = M;
-    ctx.fillRect(-6, -34, 3, 2);
-
-    // Shirt collar
-    ctx.fillStyle = L;
-    ctx.fillRect(-4, -40, 8, 4);
-
-    // ─ Arms ─
+    // Arms + club
     if (!swing) {
-        // Left arm holding club downward
-        ctx.fillStyle = M;
-        ctx.fillRect(-11, -36, 5, 18);  // left upper arm + forearm
-        ctx.fillStyle = L;
-        ctx.fillRect(-11, -26, 5, 8);   // forearm (skin)
-        ctx.fillRect(-11, -19, 5, 5);   // hand
-        // Right arm (rear)
-        ctx.fillStyle = GB.dark;
-        ctx.fillRect(6, -36, 5, 14);
-        ctx.fillStyle = D;
-        ctx.fillRect(6, -24, 5, 6);     // hand
-
-        // ─ Club (standing ready) ─
-        ctx.fillStyle = L;
-        ctx.fillRect(-9, -19, 3, 3);    // hands on grip
-        ctx.fillStyle = D;
-        ctx.fillRect(-9, 0,  3, -18);   // shaft going down from grip (already at 0 = ground)
-        // club head (flat rectangle at ground)
-        ctx.fillStyle = GB.mid;
-        ctx.fillRect(-14, -4, 10, 4);
-        ctx.fillStyle = D;
-        ctx.fillRect(-14, -4, 10, 1);
-
+        ctx.fillStyle = M; ctx.fillRect(-11,-36,5,18);
+        ctx.fillStyle = L; ctx.fillRect(-11,-26,5,8); ctx.fillRect(-11,-19,5,5);
+        ctx.fillStyle = GB.dark; ctx.fillRect(6,-36,5,14);
+        ctx.fillStyle = D; ctx.fillRect(6,-24,5,6);
+        ctx.fillStyle = L; ctx.fillRect(-9,-19,3,3);
+        ctx.fillStyle = D; ctx.fillRect(-9,0,3,-18);
+        ctx.fillStyle = GB.mid; ctx.fillRect(-14,-4,10,4);
+        ctx.fillStyle = D; ctx.fillRect(-14,-4,10,1);
     } else {
-        // Follow-through: arms swept forward/right
-        ctx.fillStyle = M;
-        ctx.fillRect(3, -40, 5, 14);    // raised right arm
-        ctx.fillStyle = L;
-        ctx.fillRect(6, -34, 5, 10);    // forearm
-        ctx.fillRect(8, -26, 4, 6);     // hand
-        // left arm follows
-        ctx.fillStyle = M;
-        ctx.fillRect(-2, -38, 5, 12);
-        ctx.fillStyle = L;
-        ctx.fillRect(0, -30, 5, 8);
-        ctx.fillRect(2, -24, 4, 5);
-
-        // Club swept through — shaft pointing low-right after putt
-        ctx.fillStyle = D;
-        ctx.fillRect(8, -24, 2, 20);
-        ctx.fillStyle = GB.mid;
-        ctx.fillRect(8, -8, 10, 4);
-        ctx.fillStyle = D;
-        ctx.fillRect(8, -8, 10, 1);
+        ctx.fillStyle = M; ctx.fillRect(3,-40,5,14);
+        ctx.fillStyle = L; ctx.fillRect(6,-34,5,10); ctx.fillRect(8,-26,4,6);
+        ctx.fillStyle = M; ctx.fillRect(-2,-38,5,12);
+        ctx.fillStyle = L; ctx.fillRect(0,-30,5,8); ctx.fillRect(2,-24,4,5);
+        ctx.fillStyle = D; ctx.fillRect(8,-24,2,20);
+        ctx.fillStyle = GB.mid; ctx.fillRect(8,-8,10,4);
+        ctx.fillStyle = D; ctx.fillRect(8,-8,10,1);
     }
 
-    // ─ Head ─
     // Neck
-    ctx.fillStyle = L;
-    ctx.fillRect(-3, -44, 6, 5);
+    ctx.fillStyle = L; ctx.fillRect(-3,-44,6,5);
 
-    // Head shape (slightly wider than tall, like the image)
-    ctx.fillStyle = L;
-    ctx.fillRect(-9, -58, 18, 16);
+    // Head
+    ctx.fillStyle = L; ctx.fillRect(-9,-58,18,16);
+    ctx.fillRect(-11,-55,3,8); ctx.fillRect(8,-55,3,8);
+    ctx.fillStyle = D; ctx.fillRect(-10,-54,1,5); ctx.fillRect(9,-54,1,5);
 
-    // Ears
-    ctx.fillRect(-11, -55, 3, 8);
-    ctx.fillRect(8,   -55, 3, 8);
+    // Hair
     ctx.fillStyle = D;
-    ctx.fillRect(-10, -54, 1, 5);  // ear detail
-    ctx.fillRect(9,   -54, 1, 5);
+    ctx.fillRect(-9,-58,18,5); ctx.fillRect(-9,-58,3,12); ctx.fillRect(6,-58,3,8);
+    ctx.fillStyle = GB.dark; ctx.fillRect(-5,-57,6,2);
 
-    // ─ Hair (dark, swept slightly) ─
+    // Cap
     ctx.fillStyle = D;
-    ctx.fillRect(-9, -58, 18, 5);   // top hair
-    ctx.fillRect(-9, -58, 3, 12);   // side hair left
-    ctx.fillRect(6,  -58, 3, 8);    // side hair right
-    // Hair highlight
-    ctx.fillStyle = GB.dark;
-    ctx.fillRect(-5, -57, 6, 2);
+    ctx.fillRect(-9,-60,18,4); ctx.fillRect(-9,-60,20,2);
+    ctx.fillRect(-7,-65,14,7); ctx.fillRect(-5,-68,10,5);
+    ctx.fillRect(7,-60,6,3);
+    ctx.fillStyle = GB.dark; ctx.fillRect(-6,-65,5,2);
 
-    // ── Cap ──
-    // Cap brim (sticks out front = to the right since facing right)
-    ctx.fillStyle = GB.darkest;
-    ctx.fillRect(-9, -60, 18, 4);   // cap base/band
-    ctx.fillRect(-9, -60, 20, 2);   // cap top dome base
-    ctx.fillRect(-7, -65, 14, 7);   // cap dome
-    ctx.fillRect(-5, -68, 10, 5);   // cap dome top
-    // brim sticking forward
-    ctx.fillRect(7, -60, 6, 3);     // brim
-    // Cap highlight stripe
-    ctx.fillStyle = GB.dark;
-    ctx.fillRect(-6, -65, 5, 2);
-
-    // ─ Face features ─
     // Eyebrows
-    ctx.fillStyle = D;
-    ctx.fillRect(-6, -51, 5, 2);
-    ctx.fillRect( 1, -51, 5, 2);
+    ctx.fillStyle = D; ctx.fillRect(-6,-51,5,2); ctx.fillRect(1,-51,5,2);
 
-    // Eyes - smaller
-    ctx.fillStyle = W2;
-    ctx.fillRect(-5, -48, 3, 3);
-    ctx.fillRect( 2, -48, 3, 3);
-    ctx.fillStyle = D;
-    ctx.fillRect(-4, -47, 2, 2);  // left pupil
-    ctx.fillRect( 3, -47, 2, 2);  // right pupil
-    // eye shine
-    ctx.fillStyle = W2;
-    ctx.fillRect(-4, -47, 1, 1);
-    ctx.fillRect( 3, -47, 1, 1);
+    // Eyes (small)
+    ctx.fillStyle = W2; ctx.fillRect(-5,-48,3,3); ctx.fillRect(2,-48,3,3);
+    ctx.fillStyle = D;  ctx.fillRect(-4,-47,2,2); ctx.fillRect(3,-47,2,2);
+    ctx.fillStyle = W2; ctx.fillRect(-4,-47,1,1); ctx.fillRect(3,-47,1,1);
 
     // Nose
-    ctx.fillStyle = GB.dark;
-    ctx.fillRect(-1, -44, 2, 3);
+    ctx.fillStyle = GB.dark; ctx.fillRect(-1,-44,2,3);
 
-    // Mouth (slight smile)
+    // Mouth
     ctx.fillStyle = D;
-    ctx.fillRect(-4, -41, 8, 2);
-    ctx.fillRect(-5, -42, 2, 1);
-    ctx.fillRect( 3, -42, 2, 1);
-
-    // Chin shadow
-    ctx.fillStyle = GB.dark;
-    ctx.fillRect(-7, -43, 14, 1);
+    ctx.fillRect(-4,-41,8,2); ctx.fillRect(-5,-42,2,1); ctx.fillRect(3,-42,2,1);
+    ctx.fillStyle = GB.dark; ctx.fillRect(-7,-43,14,1);
 }
 
 function drawHUD() {
-    // Top bar
     ctx.fillStyle = GB.darkest;
-    ctx.fillRect(0, 0, W, HUD_H);
+    ctx.fillRect(0, 0, CW, HUD_H);
 
-    // ANDY LOFTS STAG DO — clickable home link (drawn left)
-    ctx.fillStyle = GB.mid;
-    ctx.font = '5px "Press Start 2P"';
+    // Left: ANDY LOFTS STAG DO (home link)
+    ctx.fillStyle = GB.light;
+    ctx.font = '6px "Press Start 2P"';
     ctx.textAlign = 'left';
     ctx.fillText('ANDY LOFTS', 6, 10);
-    ctx.fillText('STAG DO', 6, 19);
+    ctx.fillText('STAG DO', 6, 20);
 
-    // Hole counter (right side)
-    ctx.fillStyle = GB.light;
+    // Right: holes counter
+    ctx.fillStyle = GB.mid;
     ctx.font = '7px "Press Start 2P"';
     ctx.textAlign = 'right';
-    ctx.fillText('HOLES: ' + totalHoles, W - 6, 15);
+    ctx.fillText('HOLES: ' + totalHoles, CW - 6, 17);
 }
 
-// Handle HUD tap for home navigation
-function handleHUDClick(ex, ey) {
-    // Top bar tapped on left half = go home
-    if (ey <= HUD_H && ex < W / 2) {
-        window.location.href = 'index.html';
-    }
-}
-
-function drawBtn(label, x, y, w, h, blink) {
-    const on = !blink || Math.floor(Date.now()/500)%2;
+// ── Overlay helpers
+function makeBtn(label, cx, y, w, h, blink) {
+    const on = !blink || Math.floor(Date.now() / 500) % 2;
+    const x = cx - w / 2;
     ctx.fillStyle = on ? GB.dark : GB.darkest;
     ctx.fillRect(x, y, w, h);
     ctx.strokeStyle = on ? GB.light : GB.mid;
@@ -724,53 +598,53 @@ function drawBtn(label, x, y, w, h, blink) {
     ctx.fillStyle = on ? GB.lightest : GB.mid;
     ctx.font = '8px "Press Start 2P"';
     ctx.textAlign = 'center';
-    ctx.fillText(label, x + w/2, y + h/2 + 4);
+    ctx.fillText(label, cx, y + h / 2 + 4);
+    return { x, y, w, h };
 }
 
 function drawOverlays() {
+    btnRects = {};
+
     if (state === 'miss' && flashTimer > 0) {
         const flash = Math.floor(flashTimer / 6) % 2 === 0;
         if (flash) {
-            ctx.fillStyle = 'rgba(15,56,15,0.5)';
-            ctx.fillRect(0, HUD_H, W, H - HUD_H - BTN_H);
+            ctx.fillStyle = 'rgba(15,56,15,0.45)';
+            ctx.fillRect(0, HUD_H, CW, GAME_H);
         }
         ctx.font = '14px "Press Start 2P"';
         ctx.textAlign = 'center';
         ctx.fillStyle = flash ? GB.lightest : GB.mid;
-        ctx.fillText('MISS!', W/2, H/2 - 30);
+        ctx.fillText('MISS!', CW / 2, CH / 2 - 30);
     }
 
     if (state === 'gameover') {
         ctx.fillStyle = 'rgba(5,15,5,0.88)';
-        ctx.fillRect(0, 0, W, H);
+        ctx.fillRect(0, 0, CW, CH);
         ctx.textAlign = 'center';
         ctx.fillStyle = GB.lightest;
-        ctx.font = '16px "Press Start 2P"';
-        ctx.fillText('MISS!', W/2, H/2 - 70);
+        ctx.font = '18px "Press Start 2P"';
+        ctx.fillText('MISS!', CW / 2, CH / 2 - 90);
         ctx.font = '7px "Press Start 2P"';
         ctx.fillStyle = GB.mid;
-        // Word-wrap the message
-        ctx.fillText('YOU FAILED TO GET', W/2, H/2 - 46);
-        ctx.fillText('A HOLE IN ONE!', W/2, H/2 - 32);
-        const bw = 160, bh = 30, bx = W/2 - bw/2;
-        drawBtn('TRY AGAIN', bx, H/2 - 10, bw, bh, true);
-        drawBtn('GO HOME',   bx, H/2 + 30, bw, bh, false);
+        ctx.fillText('YOU FAILED TO GET', CW / 2, CH / 2 - 62);
+        ctx.fillText('A HOLE IN ONE!',    CW / 2, CH / 2 - 48);
+        btnRects.retry  = makeBtn('TRY AGAIN', CW/2, CH/2 - 28, 170, 32, true);
+        btnRects.goHome = makeBtn('GO HOME',   CW/2, CH/2 + 16, 170, 32, false);
     }
 
     if (state === 'win') {
         ctx.fillStyle = 'rgba(5,15,5,0.88)';
-        ctx.fillRect(0, 0, W, H);
+        ctx.fillRect(0, 0, CW, CH);
         ctx.textAlign = 'center';
         ctx.fillStyle = GB.light;
-        ctx.font = '16px "Press Start 2P"';
-        ctx.fillText('YOU WIN!', W/2, H/2 - 80);
+        ctx.font = '18px "Press Start 2P"';
+        ctx.fillText('YOU WIN!', CW / 2, CH / 2 - 100);
         ctx.font = '7px "Press Start 2P"';
         ctx.fillStyle = GB.mid;
-        ctx.fillText('ALL 5 HOLES DONE!', W/2, H/2 - 56);
-        ctx.fillText('HOLES COMPLETED: ' + totalHoles, W/2, H/2 - 38);
-        const bw = 170, bh = 30, bx = W/2 - bw/2;
-        drawBtn('KEEP PLAYING', bx, H/2 - 14, bw, bh, true);
-        drawBtn('GO HOME',      bx, H/2 + 26, bw, bh, false);
+        ctx.fillText('ALL 5 HOLES DONE!',       CW / 2, CH / 2 - 74);
+        ctx.fillText('HOLES COMPLETED: ' + totalHoles, CW / 2, CH / 2 - 58);
+        btnRects.keepPlaying = makeBtn('KEEP PLAYING', CW/2, CH/2 - 38, 180, 32, true);
+        btnRects.goHome      = makeBtn('GO HOME',      CW/2, CH/2 +  8, 180, 32, false);
     }
 }
 </script>
