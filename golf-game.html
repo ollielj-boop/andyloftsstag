@@ -21,8 +21,8 @@
 
         /* ── Shell: fixed Game Boy aspect ratio with pillarboxing ── */
         #shell {
-            position: relative;
-            /* Fixed internal resolution — CSS scales it to fit */
+            position: fixed;
+            top: 0; left: 0;
             width: 360px;
             height: 640px;
             background: #0f380f;
@@ -30,8 +30,7 @@
             box-shadow: 0 0 0 3px #0a200a, 0 0 0 6px #8bac0f,
                         0 0 40px rgba(139,172,15,0.25);
             overflow: hidden;
-            /* Scale down to fit any screen while preserving aspect ratio */
-            transform-origin: center center;
+            transform-origin: top left;
         }
 
         .screen { position: absolute; inset: 0; display: none; }
@@ -99,10 +98,11 @@ function scaleShell() {
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     const scale = Math.min(vw / CW, vh / CH);
-    shell.style.transform = `scale(${scale})`;
-    shell.style.left  = Math.round((vw - CW * scale) / 2) + 'px';
-    shell.style.top   = Math.round((vh - CH * scale) / 2) + 'px';
-    shell.style.position = 'fixed';
+    const scaledW = CW * scale;
+    const scaledH = CH * scale;
+    const offsetX = Math.round((vw - scaledW) / 2);
+    const offsetY = Math.round((vh - scaledH) / 2);
+    shell.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
 }
 scaleShell();
 window.addEventListener('resize', scaleShell);
@@ -120,7 +120,7 @@ const LEVEL_HOLES = [80, 62, 46, 34, 30];
 const BALL_R       = 7;
 const SHELF_H      = 18;
 const HUD_H        = 28;
-const BTN_H        = 50;
+const BTN_H        = 68;
 const GAME_H       = CH - HUD_H - BTN_H;  // 562px
 const ARROW_SPEED_BASE = 3.0;
 const PUTT_SPEED   = 5.5;
@@ -140,7 +140,7 @@ let ballVY      = 0;
 let swingTimer  = 0;
 let putterSwing = 0;
 let flashTimer  = 0;
-let totalHoles  = 5;
+let totalHoles  = 0;
 let extraMode   = false;
 
 // Button hit-areas (set in drawOverlays, used in tap handler)
@@ -275,7 +275,7 @@ function initLevel(lv, keepTotal) {
     flashTimer  = 0;
     ballVX = 0;
     ballVY = 0;
-    if (!keepTotal) { totalHoles = 5; extraMode = false; }
+    if (!keepTotal) { totalHoles = 0; extraMode = false; }
     const s = shelves[lv];
     ballX = s.side === 'left' ? 40 : CW - 40;
     ballY = s.y - BALL_R;
@@ -579,11 +579,11 @@ function drawHUD() {
     ctx.fillText('ANDY LOFTS', 6, 10);
     ctx.fillText('STAG DO', 6, 20);
 
-    // Right: holes counter
-    ctx.fillStyle = GB.mid;
-    ctx.font = '7px "Press Start 2P"';
+    // Right: holes counter (bigger)
+    ctx.fillStyle = GB.lightest;
+    ctx.font = '9px "Press Start 2P"';
     ctx.textAlign = 'right';
-    ctx.fillText('HOLES: ' + totalHoles, CW - 6, 17);
+    ctx.fillText(totalHoles + ' HOLES', CW - 6, 19);
 }
 
 // ── Overlay helpers
@@ -621,15 +621,29 @@ function drawOverlays() {
         ctx.fillStyle = 'rgba(5,15,5,0.88)';
         ctx.fillRect(0, 0, CW, CH);
         ctx.textAlign = 'center';
+
+        // Score box at top
+        const boxX = CW/2 - 140, boxY = 50, boxW = 280, boxH = 70;
+        ctx.fillStyle = GB.darkest;
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        ctx.strokeStyle = GB.mid; ctx.lineWidth = 3;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+        ctx.fillStyle = GB.light;
+        ctx.font = '9px "Press Start 2P"';
+        ctx.fillText('HOLES COMPLETED', CW/2, boxY + 24);
+        ctx.fillStyle = GB.lightest;
+        ctx.font = '26px "Press Start 2P"';
+        ctx.fillText(totalHoles, CW/2, boxY + 58);
+
         ctx.fillStyle = GB.lightest;
         ctx.font = '18px "Press Start 2P"';
-        ctx.fillText('MISS!', CW / 2, CH / 2 - 90);
+        ctx.fillText('MISS!', CW / 2, CH / 2 - 60);
         ctx.font = '7px "Press Start 2P"';
         ctx.fillStyle = GB.mid;
-        ctx.fillText('YOU FAILED TO GET', CW / 2, CH / 2 - 62);
-        ctx.fillText('A HOLE IN ONE!',    CW / 2, CH / 2 - 48);
-        btnRects.retry  = makeBtn('TRY AGAIN', CW/2, CH/2 - 28, 170, 32, true);
-        btnRects.goHome = makeBtn('GO HOME',   CW/2, CH/2 + 16, 170, 32, false);
+        ctx.fillText('YOU FAILED TO GET', CW / 2, CH / 2 - 32);
+        ctx.fillText('A HOLE IN ONE!',    CW / 2, CH / 2 - 18);
+        btnRects.retry  = makeBtn('TRY AGAIN', CW/2, CH/2 + 4,  170, 32, true);
+        btnRects.goHome = makeBtn('GO HOME',   CW/2, CH/2 + 48, 170, 32, false);
     }
 
     if (state === 'win') {
