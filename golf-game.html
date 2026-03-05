@@ -76,7 +76,7 @@ const BALL_R = 7;
 const SHELF_H = 18;
 const HUD_H   = 24;
 const BTN_H   = 52;
-const ARROW_SPEED_BASE = 2.2;
+const ARROW_SPEED_BASE = 1.8;
 const PUTT_SPEED = 5.5; // ball travel speed along level
 
 let canvas, ctx, W, H, GA; // GA = game area height
@@ -142,10 +142,10 @@ function buildLayout() {
         let holeLeft;
         if (side === 'left') {
             // putter left, hole on RIGHT
-            holeLeft = W - hw - 6;
+            holeLeft = W - hw - 26;
         } else {
             // putter right, hole on LEFT
-            holeLeft = 6;
+            holeLeft = 26;
         }
         shelves.push({ y: shelfY, holeLeft, holeRight: holeLeft + hw, side });
     }
@@ -172,7 +172,7 @@ function initLevel(lv) {
     // Arrow starts near ball, sweeps to far wall
     arrowX    = ballX;
     arrowDir  = s.side === 'left' ? 1 : -1;
-    arrowSpeed = ARROW_SPEED_BASE + lv * 0.5;
+    arrowSpeed = ARROW_SPEED_BASE + lv * 0.9;
 }
 
 function onPutt() {
@@ -311,7 +311,7 @@ function drawShelves() {
 
         // ── THE HOLE: a dark gap with visible edges ──
         // Dark void inside hole
-        ctx.fillStyle = '#050f05';
+        ctx.fillStyle = GB.lightest;
         ctx.fillRect(s.holeLeft, s.y, s.holeRight - s.holeLeft, SHELF_H);
         // Hole left wall (bright edge)
         ctx.fillStyle = GB.mid;
@@ -320,14 +320,36 @@ function drawShelves() {
         ctx.fillStyle = GB.mid;
         ctx.fillRect(s.holeRight, s.y, 2, SHELF_H);
         // Hole top lip shadow
-        ctx.fillStyle = '#000';
-        ctx.fillRect(s.holeLeft, s.y, s.holeRight - s.holeLeft, 3);
+        ctx.fillStyle = GB.dark;
+        ctx.fillRect(s.holeLeft, s.y, s.holeRight - s.holeLeft, 2);
 
-        // Small level number indicator
-        ctx.fillStyle = GB.mid;
-        ctx.font = '6px "Press Start 2P"';
-        ctx.textAlign = 'center';
-        ctx.fillText((i+1).toString(), s.holeLeft + (s.holeRight - s.holeLeft)/2, s.y + 13);
+        // ── Flag: pole on the far side from the putter ──
+        const holeMid = s.holeLeft + (s.holeRight - s.holeLeft) / 2;
+        const poleX   = s.side === 'left' ? s.holeRight + 8 : s.holeLeft - 8;
+        const poleTopY = s.y - 22;
+        // Pole
+        ctx.fillStyle = GB.darkest;
+        ctx.fillRect(poleX - 1, poleTopY, 2, 22);
+        // Flag triangle
+        ctx.fillStyle = GB.dark;
+        ctx.beginPath();
+        if (s.side === 'left') {
+            // flag flies left (away from putter)
+            ctx.moveTo(poleX,      poleTopY);
+            ctx.lineTo(poleX - 12, poleTopY + 5);
+            ctx.lineTo(poleX,      poleTopY + 10);
+        } else {
+            ctx.moveTo(poleX,      poleTopY);
+            ctx.lineTo(poleX + 12, poleTopY + 5);
+            ctx.lineTo(poleX,      poleTopY + 10);
+        }
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = GB.darkest;
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+
     }
 }
 
@@ -539,23 +561,36 @@ function drawAndyPutter(swing) {
     ctx.fillStyle = GB.dark;
     ctx.fillRect(-5, -57, 6, 2);
 
+    // ── Cap ──
+    // Cap brim (sticks out front = to the right since facing right)
+    ctx.fillStyle = GB.darkest;
+    ctx.fillRect(-9, -60, 18, 4);   // cap base/band
+    ctx.fillRect(-9, -60, 20, 2);   // cap top dome base
+    ctx.fillRect(-7, -65, 14, 7);   // cap dome
+    ctx.fillRect(-5, -68, 10, 5);   // cap dome top
+    // brim sticking forward
+    ctx.fillRect(7, -60, 6, 3);     // brim
+    // Cap highlight stripe
+    ctx.fillStyle = GB.dark;
+    ctx.fillRect(-6, -65, 5, 2);
+
     // ─ Face features ─
     // Eyebrows
     ctx.fillStyle = D;
     ctx.fillRect(-6, -51, 5, 2);
     ctx.fillRect( 1, -51, 5, 2);
 
-    // Eyes (with white sclera)
+    // Eyes - smaller
     ctx.fillStyle = W2;
-    ctx.fillRect(-6, -48, 5, 5);
-    ctx.fillRect( 1, -48, 5, 5);
+    ctx.fillRect(-5, -48, 3, 3);
+    ctx.fillRect( 2, -48, 3, 3);
     ctx.fillStyle = D;
-    ctx.fillRect(-5, -47, 3, 3);  // left pupil
-    ctx.fillRect( 2, -47, 3, 3);  // right pupil
+    ctx.fillRect(-4, -47, 2, 2);  // left pupil
+    ctx.fillRect( 3, -47, 2, 2);  // right pupil
     // eye shine
     ctx.fillStyle = W2;
-    ctx.fillRect(-5, -47, 1, 1);
-    ctx.fillRect( 2, -47, 1, 1);
+    ctx.fillRect(-4, -47, 1, 1);
+    ctx.fillRect( 3, -47, 1, 1);
 
     // Nose
     ctx.fillStyle = GB.dark;
