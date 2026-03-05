@@ -84,6 +84,16 @@
     <div id="gameScreen" class="screen">
         <canvas id="gameCanvas"></canvas>
         <button id="puttBtn">PUTT!</button>
+        <div id="nameEntryOverlay" style="display:none;position:absolute;bottom:80px;left:50%;transform:translateX(-50%);z-index:200;text-align:center;">
+            <input id="nameInput" type="text" maxlength="8"
+                autocomplete="off" autocorrect="off" autocapitalize="characters" spellcheck="false"
+                style="background:#0f380f;color:#9bbc0f;border:3px solid #9bbc0f;font-family:'Press Start 2P',monospace;
+                font-size:16px;padding:8px 12px;width:180px;text-align:center;letter-spacing:3px;outline:none;caret-color:#9bbc0f;">
+            <br><button id="nameSubmitBtn" style="margin-top:10px;background:#0f380f;color:#9bbc0f;border:3px solid #8bac0f;
+                font-family:'Press Start 2P',monospace;font-size:11px;padding:8px 20px;cursor:pointer;letter-spacing:2px;">
+                CONFIRM ▶
+            </button>
+        </div>
     </div>
 </div>
 
@@ -148,6 +158,36 @@ let btnRects = {};
 
 let shelves = [];
 
+// ── Leaderboard (localStorage)
+const LB_KEY = 'andyPuttingLB';
+let nameEntryChars = [];  // current typed name (max 8 chars)
+let nameInputActive = false;
+
+function getLeaderboard() {
+    try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; } catch(e) { return []; }
+}
+function saveLeaderboard(lb) {
+    try { localStorage.setItem(LB_KEY, JSON.stringify(lb)); } catch(e) {}
+}
+function isTopFive(score) {
+    if (score === 0) return false;
+    const lb = getLeaderboard();
+    return lb.length < 5 || score > lb[lb.length - 1].score;
+}
+function addToLeaderboard(name, score) {
+    const lb = getLeaderboard();
+    lb.push({ name: name.toUpperCase().trim() || 'ANON', score });
+    lb.sort((a, b) => b.score - a.score);
+    saveLeaderboard(lb.slice(0, 5));
+}
+function submitName() {
+    if (state !== 'nameEntry') return;
+    const name = nameEntryChars.join('') || 'ANON';
+    addToLeaderboard(name, totalHoles);
+    nameEntryChars = [];
+    state = 'gameover';
+}
+
 // ── Init
 function startGame() {
     document.getElementById('homeScreen').classList.remove('active');
@@ -165,12 +205,39 @@ function startGame() {
     initLevel(0, false);
 
     document.addEventListener('keydown', e => {
-        if (e.code === 'Space') { e.preventDefault(); onPutt(); }
+        if (e.code === 'Space') {
+            e.preventDefault();
+            if (state === 'nameEntry') { submitName(); }
+            else { handlePuttBtn(); }
+        }
+        if (state === 'nameEntry' && e.key === 'Enter') { submitName(); }
+        if (state === 'nameEntry') {
+            if (e.key === 'Backspace') { nameEntryChars.pop(); }
+            else if (e.key.length === 1 && /[a-zA-Z0-9 ]/.test(e.key) && nameEntryChars.length < 8) {
+                nameEntryChars.push(e.key.toUpperCase());
+            }
+        }
     });
     document.getElementById('puttBtn').addEventListener('click', handlePuttBtn);
     document.getElementById('puttBtn').addEventListener('touchend', e => { e.preventDefault(); handlePuttBtn(); });
     canvas.addEventListener('click',    e => handleCanvasTap(tapCoords(e, 'click')));
     canvas.addEventListener('touchend', e => { e.preventDefault(); handleCanvasTap(tapCoords(e, 'touch')); });
+
+    // Name entry overlay
+    const nameInput = document.getElementById('nameInput');
+    const nameOverlay = document.getElementById('nameEntryOverlay');
+    nameInput.addEventListener('input', () => {
+        nameEntryChars = nameInput.value.toUpperCase().split('').slice(0, 8);
+    });
+    document.getElementById('nameSubmitBtn').addEventListener('click', () => {
+        nameEntryChars = nameInput.value.toUpperCase().split('').slice(0, 8);
+        submitName();
+    });
+    document.getElementById('nameSubmitBtn').addEventListener('touchend', e => {
+        e.preventDefault();
+        nameEntryChars = nameInput.value.toUpperCase().split('').slice(0, 8);
+        submitName();
+    });
 
     requestAnimationFrame(loop);
 }
@@ -207,6 +274,52 @@ function handleCanvasTap(p) {
     // HUD home tap (left half of top bar)
     if (p.y <= HUD_H && p.x < CW / 2) {
         window.location.href = 'index.html';
+        return;
+    }
+    if (state === 'nameEntry') {
+        ctx.fillStyle = 'rgba(5,15,5,0.92)';
+        ctx.fillRect(0, 0, CW, CH);
+        ctx.textAlign = 'center';
+
+        // Score box
+        const boxX = CW/2 - 130, boxY = 40, boxW = 260, boxH = 70;
+        ctx.fillStyle = GB.darkest;
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        ctx.strokeStyle = GB.light; ctx.lineWidth = 3;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+        ctx.fillStyle = GB.light;
+        ctx.font = '9px "Press Start 2P"';
+        ctx.fillText('HOLES COMPLETED', CW/2, boxY + 22);
+        ctx.fillStyle = GB.lightest;
+        ctx.font = '28px "Press Start 2P"';
+        ctx.fillText(totalHoles, CW/2, boxY + 58);
+
+        // New high score message
+        ctx.fillStyle = Math.floor(Date.now()/400)%2 ? GB.light : GB.mid;
+        ctx.font = '9px "Press Start 2P"';
+        ctx.fillText('NEW HIGH SCORE!', CW/2, 138);
+
+        ctx.fillStyle = GB.lightest;
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillText('ENTER YOUR NAME:', CW/2, 162);
+
+        // Name display (typed chars or placeholder)
+        const displayName = nameEntryChars.join('') || '________';
+        const blink = Math.floor(Date.now()/500)%2 ? '_' : ' ';
+        ctx.fillStyle = GB.light;
+        ctx.font = '14px "Press Start 2P"';
+        ctx.fillText(nameEntryChars.join('') + (nameEntryChars.length < 8 ? blink : ''), CW/2, 196);
+
+        // Hint
+        ctx.fillStyle = GB.dark;
+        ctx.font = '6px "Press Start 2P"';
+        ctx.fillText('TAP FIELD BELOW TO TYPE', CW/2, 224);
+        ctx.fillText('SPACE/ENTER TO CONFIRM', CW/2, 236);
+        return; // skip other overlays
+    }
+
+    if (state === 'nameEntry') {
+        // tapping canvas outside the HTML input still allows submitName if name entered
         return;
     }
     if (state === 'gameover') {
@@ -331,7 +444,14 @@ function update() {
         ballX += ballVX;
         ballVX *= 0.88;
         if (flashTimer > 0) flashTimer--;
-        if (flashTimer === 0) state = 'gameover';
+        if (flashTimer === 0) {
+            if (isTopFive(totalHoles)) {
+                state = 'nameEntry';
+                nameEntryChars = [];
+            } else {
+                state = 'gameover';
+            }
+        }
     }
 
     if (state === 'falling') {
@@ -382,6 +502,19 @@ function draw() {
     drawPutter();
     drawHUD();
     drawOverlays();
+
+    // Show/hide HTML name input overlay
+    const nameOverlay = document.getElementById('nameEntryOverlay');
+    const nameInput   = document.getElementById('nameInput');
+    if (state === 'nameEntry') {
+        if (nameOverlay.style.display === 'none') {
+            nameOverlay.style.display = 'block';
+            nameInput.value = '';
+            nameInput.focus();
+        }
+    } else {
+        nameOverlay.style.display = 'none';
+    }
 }
 
 function drawShelves() {
@@ -617,6 +750,48 @@ function drawOverlays() {
         ctx.fillText('MISS!', CW / 2, CH / 2 - 30);
     }
 
+    if (state === 'nameEntry') {
+        ctx.fillStyle = 'rgba(5,15,5,0.92)';
+        ctx.fillRect(0, 0, CW, CH);
+        ctx.textAlign = 'center';
+
+        // Score box
+        const boxX = CW/2 - 130, boxY = 40, boxW = 260, boxH = 70;
+        ctx.fillStyle = GB.darkest;
+        ctx.fillRect(boxX, boxY, boxW, boxH);
+        ctx.strokeStyle = GB.light; ctx.lineWidth = 3;
+        ctx.strokeRect(boxX, boxY, boxW, boxH);
+        ctx.fillStyle = GB.light;
+        ctx.font = '9px "Press Start 2P"';
+        ctx.fillText('HOLES COMPLETED', CW/2, boxY + 22);
+        ctx.fillStyle = GB.lightest;
+        ctx.font = '28px "Press Start 2P"';
+        ctx.fillText(totalHoles, CW/2, boxY + 58);
+
+        // New high score message
+        ctx.fillStyle = Math.floor(Date.now()/400)%2 ? GB.light : GB.mid;
+        ctx.font = '9px "Press Start 2P"';
+        ctx.fillText('NEW HIGH SCORE!', CW/2, 138);
+
+        ctx.fillStyle = GB.lightest;
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillText('ENTER YOUR NAME:', CW/2, 162);
+
+        // Name display (typed chars or placeholder)
+        const displayName = nameEntryChars.join('') || '________';
+        const blink = Math.floor(Date.now()/500)%2 ? '_' : ' ';
+        ctx.fillStyle = GB.light;
+        ctx.font = '14px "Press Start 2P"';
+        ctx.fillText(nameEntryChars.join('') + (nameEntryChars.length < 8 ? blink : ''), CW/2, 196);
+
+        // Hint
+        ctx.fillStyle = GB.dark;
+        ctx.font = '6px "Press Start 2P"';
+        ctx.fillText('TAP FIELD BELOW TO TYPE', CW/2, 224);
+        ctx.fillText('SPACE/ENTER TO CONFIRM', CW/2, 236);
+        return; // skip other overlays
+    }
+
     if (state === 'gameover') {
         ctx.fillStyle = 'rgba(5,15,5,0.88)';
         ctx.fillRect(0, 0, CW, CH);
@@ -644,6 +819,29 @@ function drawOverlays() {
         ctx.fillText('A HOLE IN ONE!',    CW / 2, CH / 2 - 18);
         btnRects.retry  = makeBtn('TRY AGAIN', CW/2, CH/2 + 4,  170, 32, true);
         btnRects.goHome = makeBtn('GO HOME',   CW/2, CH/2 + 48, 170, 32, false);
+
+        // Leaderboard
+        const lb = getLeaderboard();
+        if (lb.length > 0) {
+            const lbX = CW/2 - 150, lbY = CH/2 + 92, lbW = 300, lbH = 16 + lb.length * 20 + 8;
+            ctx.fillStyle = GB.darkest;
+            ctx.fillRect(lbX, lbY, lbW, lbH);
+            ctx.strokeStyle = GB.dark; ctx.lineWidth = 2;
+            ctx.strokeRect(lbX, lbY, lbW, lbH);
+            ctx.fillStyle = GB.mid;
+            ctx.font = '7px "Press Start 2P"';
+            ctx.textAlign = 'center';
+            ctx.fillText('TOP 5', CW/2, lbY + 12);
+            lb.forEach((entry, i) => {
+                const ey = lbY + 24 + i * 20;
+                ctx.fillStyle = i === 0 ? GB.lightest : GB.light;
+                ctx.font = '7px "Press Start 2P"';
+                ctx.textAlign = 'left';
+                ctx.fillText((i+1) + '. ' + entry.name.substring(0,8).padEnd(8,' '), lbX + 10, ey + 10);
+                ctx.textAlign = 'right';
+                ctx.fillText(entry.score, lbX + lbW - 10, ey + 10);
+            });
+        }
     }
 
     if (state === 'win') {
