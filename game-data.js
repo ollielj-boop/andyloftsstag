@@ -350,7 +350,7 @@ const gameData = {
         "lead": "Website Home Page"
       },
       {
-        "text": "Ask if you can go an apologise to Matt",
+        "text": "Ask if you can go and apologise to Matt",
         "lead": "Amb1"
       }
     ]

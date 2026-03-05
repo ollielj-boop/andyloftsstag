@@ -2,85 +2,630 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Golf Game - Andy's Stag Do</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Andy's Putting Challenge</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
-            background: linear-gradient(to bottom, #87CEEB 0%, #90EE90 100%);
-            font-family: 'Arial', sans-serif;
+            background: #0f380f;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            padding: 20px;
+            font-family: 'Press Start 2P', monospace;
+            overflow: hidden;
         }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            padding: 60px 40px;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-            max-width: 600px;
+        #shell {
+            position: relative;
+            width: min(400px, 100vw);
+            height: min(680px, 100svh);
+            background: #0f380f;
+            border: 3px solid #306230;
+            box-shadow: 0 0 0 3px #0f380f, 0 0 0 6px #8bac0f, 0 0 30px rgba(139,172,15,0.3);
+            overflow: hidden;
+            image-rendering: pixelated;
         }
 
-        h1 {
-            font-size: 48px;
-            color: #2d5016;
-            margin-bottom: 20px;
-        }
+        .screen { position: absolute; inset: 0; display: none; }
+        .screen.active { display: block; }
 
-        .golf-emoji {
-            font-size: 80px;
-            margin: 20px 0;
+        /* HOME */
+        #homeScreen img {
+            width: 100%; height: 100%;
+            object-fit: cover;
+            image-rendering: pixelated;
         }
-
-        p {
-            font-size: 20px;
-            color: #555;
-            margin-bottom: 30px;
-            line-height: 1.6;
-        }
-
-        .back-button {
-            background-color: #2d5016;
-            color: white;
-            border: none;
-            padding: 15px 40px;
-            font-size: 18px;
-            border-radius: 10px;
+        #playBtn {
+            position: absolute;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f380f;
+            color: #9bbc0f;
+            border: 3px solid #9bbc0f;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 16px;
+            padding: 12px 36px;
             cursor: pointer;
-            transition: all 0.3s;
-            text-decoration: none;
-            display: inline-block;
+            letter-spacing: 4px;
+            box-shadow: 3px 3px 0 #306230;
+            animation: blink 0.8s step-end infinite;
+            z-index: 10;
+            white-space: nowrap;
+        }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+        #playBtn:hover { animation: none; background: #306230; }
+
+        /* GAME */
+        #gameCanvas {
+            width: 100%; height: 100%;
+            display: block;
+            image-rendering: pixelated;
+            cursor: default;
         }
 
-        .back-button:hover {
-            background-color: #3d6026;
-            transform: scale(1.05);
+        #puttBtn {
+            position: absolute;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #0f380f;
+            color: #9bbc0f;
+            border: 3px solid #8bac0f;
+            font-family: 'Press Start 2P', monospace;
+            font-size: 13px;
+            padding: 10px 28px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            box-shadow: 3px 3px 0 #306230;
+            z-index: 10;
+            display: none;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         }
+        #puttBtn:active { transform: translateX(-50%) translate(2px,2px); box-shadow: 1px 1px 0 #306230; }
 
-        .coming-soon {
-            font-style: italic;
-            color: #888;
-            margin-top: 20px;
+        /* scanlines */
+        #shell::after {
+            content:'';
+            position:absolute;
+            inset:0;
+            pointer-events:none;
+            background: repeating-linear-gradient(to bottom, transparent 0px, transparent 3px, rgba(0,0,0,0.07) 3px, rgba(0,0,0,0.07) 4px);
+            z-index:50;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>⛳ GOLF GAME ⛳</h1>
-        <div class="golf-emoji">🏌️</div>
-        <p><strong>Coming Soon!</strong></p>
-        <p>The golf game is under construction. Check back later to tee off!</p>
-        <a href="adventure.html" class="back-button">← Back to Adventure</a>
-        <p class="coming-soon">This page is a placeholder for now</p>
+<div id="shell">
+    <div id="homeScreen" class="screen active">
+        <img src="images/putting.jpeg" alt="Andy's Putting Challenge">
+        <button id="playBtn" onclick="startGame()">▶ PLAY</button>
     </div>
+    <div id="gameScreen" class="screen">
+        <canvas id="gameCanvas"></canvas>
+        <button id="puttBtn">PUTT!</button>
+    </div>
+</div>
+
+<script>
+// ── Palette
+const GB = { darkest:'#0f380f', dark:'#306230', mid:'#8bac0f', light:'#9bbc0f', lightest:'#c4d89a' };
+
+// ── Level definitions: hole width in px (ball = 14px diameter)
+// 5 levels, alternating putter position: LEFT for odd levels, RIGHT for even
+const LEVELS = [
+    { holeWidth: 80 },   // level 1 – easy
+    { holeWidth: 60 },   // level 2
+    { holeWidth: 44 },   // level 3
+    { holeWidth: 30 },   // level 4
+    { holeWidth: 22 },   // level 5 – ~1.5x ball width
+];
+
+const BALL_R = 7;
+const ARROW_SPEED_BASE = 1.8; // px per frame, increases each level
+const SHELF_H = 20;           // height of each ledge/shelf
+const PUTTER_W = 30;
+const PUTTER_H = 54;
+const PUTT_BTN_AREA = 60;     // px reserved at bottom for button
+
+let canvas, ctx, W, H;
+let level = 0;
+let state = 'idle'; // idle | swinging | animating | falling | gameover | win
+let arrowX = 0;
+let arrowDir = 1;
+let arrowSpeed = ARROW_SPEED_BASE;
+let puttAnim = 0;       // 0..1 putt animation progress
+let ballY = 0;
+let ballX = 0;
+let ballFallY = 0;
+let fallTarget = 0;
+let shelfY = [];        // y positions of each shelf top
+let holeX = [];         // x position (left edge) of each hole
+let puttSide = [];      // 'left' or 'right' for each level
+let msgTimer = 0;
+let msgText  = '';
+let flashTimer = 0;
+let animFrame = 0;
+let putterAnim = 0;     // 0 = standing, 1 = mid-swing, 2 = follow-through
+let putterAnimTimer = 0;
+let raf = null;
+
+function startGame() {
+    document.getElementById('homeScreen').classList.remove('active');
+    document.getElementById('gameScreen').classList.add('active');
+    document.getElementById('puttBtn').style.display = 'block';
+
+    canvas = document.getElementById('gameCanvas');
+    const shell = document.getElementById('shell');
+    W = shell.clientWidth;
+    H = shell.clientHeight;
+    canvas.width  = W;
+    canvas.height = H;
+    ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+
+    document.addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); handlePutt(); } });
+    document.getElementById('puttBtn').addEventListener('click', handlePutt);
+    document.getElementById('puttBtn').addEventListener('touchend', e => { e.preventDefault(); handlePutt(); });
+
+    initLevel(0);
+    if (raf) cancelAnimationFrame(raf);
+    loop();
+}
+
+function gameAreaH() { return H - PUTT_BTN_AREA; }
+
+function initLevel(lv) {
+    level = lv;
+    state = 'idle';
+    puttAnim = 0;
+    putterAnim = 0;
+    putterAnimTimer = 0;
+    ballFallY = 0;
+    msgTimer = 0;
+    flashTimer = 0;
+
+    const GA = gameAreaH();
+    // 5 shelves divide the game area
+    // Shelf y positions (top of shelf bar) — evenly spaced
+    // Shelf 0 = top, shelf 4 = above button area
+    const numShelves = 5;
+    const gap = GA / numShelves;
+    shelfY = [];
+    for (let i = 0; i < numShelves; i++) {
+        shelfY.push(Math.round(gap * (i + 1) - SHELF_H));
+    }
+
+    // Hole positions & putter sides for each level
+    // Level 0: putter LEFT, hole on right side of shelf
+    // Level 1: putter RIGHT, hole on left side of shelf
+    // etc — alternating
+    holeX = [];
+    puttSide = [];
+    for (let i = 0; i < numShelves; i++) {
+        const hw = LEVELS[Math.min(i, LEVELS.length-1)].holeWidth;
+        if (i % 2 === 0) {
+            // putter left, hole is a gap on the RIGHT end
+            puttSide.push('left');
+            holeX.push(W - hw - 8);
+        } else {
+            // putter right, hole is a gap on the LEFT end
+            puttSide.push('right');
+            holeX.push(8);
+        }
+    }
+
+    // Ball starts at current level's shelf, beside putter
+    resetBallAndArrow();
+}
+
+function resetBallAndArrow() {
+    const lv = level;
+    const side = puttSide[lv];
+    const sy = shelfY[lv];
+    const hw = LEVELS[Math.min(lv, LEVELS.length-1)].holeWidth;
+
+    if (side === 'left') {
+        ballX = PUTTER_W + 12 + BALL_R;
+    } else {
+        ballX = W - PUTTER_W - 12 - BALL_R;
+    }
+    ballY = sy - BALL_R;
+
+    // Arrow sweeps from ball to far edge of hole
+    const hLeft  = holeX[lv];
+    const hRight = hLeft + hw;
+
+    // Arrow tip starts at ball and sweeps toward far side of hole
+    if (side === 'left') {
+        arrowX = ballX;
+        arrowDir = 1;
+    } else {
+        arrowX = ballX;
+        arrowDir = -1;
+    }
+
+    arrowSpeed = ARROW_SPEED_BASE + lv * 0.45;
+    state = 'idle';
+    putterAnim = 0;
+}
+
+function handlePutt() {
+    if (state !== 'idle') return;
+
+    const lv = level;
+    const hw = LEVELS[Math.min(lv, LEVELS.length-1)].holeWidth;
+    const hLeft  = holeX[lv];
+    const hRight = hLeft + hw;
+
+    // Arrow tip must be within hole bounds
+    const hit = arrowX >= hLeft && arrowX <= hRight;
+
+    state = 'animating';
+    putterAnim = 1; // trigger swing
+    putterAnimTimer = 0;
+
+    if (hit) {
+        setTimeout(() => {
+            // Ball falls to next level
+            state = 'falling';
+            ballFallY = ballY;
+            if (lv < 4) {
+                fallTarget = shelfY[lv + 1] - BALL_R;
+            } else {
+                // Win!
+                fallTarget = ballY;
+                setTimeout(() => { state = 'win'; }, 600);
+            }
+        }, 420);
+    } else {
+        msgText  = 'MISS!';
+        flashTimer = 90;
+        setTimeout(() => {
+            state = 'gameover';
+            msgText  = 'MISS!\nTRY\nAGAIN';
+            msgTimer = 999;
+        }, 500);
+    }
+}
+
+function loop() {
+    update();
+    draw();
+    raf = requestAnimationFrame(loop);
+}
+
+function update() {
+    if (state === 'idle') {
+        // Move arrow
+        arrowX += arrowSpeed * arrowDir;
+        const lv = level;
+        const side = puttSide[lv];
+
+        // Bounce arrow between ball position and opposite wall
+        const minX = side === 'left' ? ballX : 4;
+        const maxX = side === 'left' ? W - 4 : ballX;
+
+        if (arrowX >= maxX) { arrowX = maxX; arrowDir = -1; }
+        if (arrowX <= minX) { arrowX = minX; arrowDir = 1; }
+    }
+
+    if (state === 'animating') {
+        putterAnimTimer++;
+        if (putterAnimTimer > 30) putterAnim = 2;
+    }
+
+    if (state === 'falling') {
+        ballFallY += 6;
+        ballY = ballFallY;
+        if (ballY >= fallTarget) {
+            ballY = fallTarget;
+            if (level < 4) {
+                level++;
+                // reset arrow for next level - ball stays put, putter switches side
+                resetArrowOnly();
+                state = 'idle';
+            }
+        }
+    }
+
+    if (state === 'gameover') {
+        // wait for click/space - handled by resetAfterGameover
+    }
+
+    if (flashTimer > 0) flashTimer--;
+    if (msgTimer > 0) msgTimer--;
+}
+
+function resetArrowOnly() {
+    const lv = level;
+    const side = puttSide[lv];
+    if (side === 'left') {
+        arrowX = ballX;
+        arrowDir = 1;
+    } else {
+        arrowX = ballX;
+        arrowDir = -1;
+    }
+    arrowSpeed = ARROW_SPEED_BASE + lv * 0.45;
+    putterAnim = 0;
+    putterAnimTimer = 0;
+}
+
+// Click/space during gameover resets
+document.addEventListener('keydown', e => {
+    if (e.code === 'Space' && state === 'gameover') { e.preventDefault(); resetGame(); }
+    if (e.code === 'Space' && state === 'win') { e.preventDefault(); resetGame(); }
+});
+
+function resetGame() {
+    initLevel(0);
+}
+
+// ── Drawing ──────────────────────────────────────────────────────────────────
+
+function draw() {
+    ctx.fillStyle = GB.lightest;
+    ctx.fillRect(0, 0, W, H);
+
+    drawShelves();
+    drawHoles();
+    drawArrow();
+    drawBall();
+    drawPutters();
+    drawHUD();
+    drawMessages();
+}
+
+function drawShelves() {
+    const GA = gameAreaH();
+    // Draw the green strips (shelves/ledges)
+    for (let i = 0; i < 5; i++) {
+        const sy = shelfY[i];
+        const hw = LEVELS[Math.min(i, LEVELS.length-1)].holeWidth;
+        const hLeft  = holeX[i];
+        const hRight = hLeft + hw;
+
+        ctx.fillStyle = GB.darkest;
+        // Left segment of shelf
+        ctx.fillRect(0, sy, hLeft, SHELF_H);
+        // Right segment of shelf
+        ctx.fillRect(hRight, sy, W - hRight, SHELF_H);
+
+        // Shelf top highlight
+        ctx.fillStyle = GB.dark;
+        ctx.fillRect(0, sy, hLeft, 2);
+        ctx.fillRect(hRight, sy, W - hRight, 2);
+    }
+}
+
+function drawHoles() {
+    for (let i = 0; i < 5; i++) {
+        const sy = shelfY[i];
+        const hw = LEVELS[Math.min(i, LEVELS.length-1)].holeWidth;
+        const hLeft  = holeX[i];
+
+        // Draw hole shadow (dark rectangle in gap)
+        ctx.fillStyle = GB.darkest;
+        ctx.fillRect(hLeft, sy, hw, SHELF_H);
+
+        // Hole rim highlights
+        ctx.fillStyle = '#000';
+        ctx.fillRect(hLeft,           sy,          2,    SHELF_H); // left wall
+        ctx.fillRect(hLeft + hw - 2,  sy,          2,    SHELF_H); // right wall
+        ctx.fillRect(hLeft,           sy,          hw,   3);        // top lip
+    }
+}
+
+function drawArrow() {
+    if (state !== 'idle' && state !== 'animating') return;
+
+    const lv = level;
+    const side = puttSide[lv];
+    const sy   = shelfY[lv];
+    const arrowY = sy - BALL_R - 10; // just above ball
+
+    // Draw dashed line from ball to arrow tip
+    ctx.strokeStyle = GB.dark;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(ballX, arrowY);
+    ctx.lineTo(arrowX, arrowY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Arrow head
+    const dir = side === 'left' ? (arrowX > ballX ? 1 : -1) : (arrowX < ballX ? -1 : 1);
+    const headDir = arrowDir;
+    ctx.fillStyle = GB.darkest;
+    ctx.beginPath();
+    ctx.moveTo(arrowX,          arrowY);
+    ctx.lineTo(arrowX - headDir*10, arrowY - 6);
+    ctx.lineTo(arrowX - headDir*10, arrowY + 6);
+    ctx.closePath();
+    ctx.fill();
+
+    // Show hole zone highlight on active level
+    const hw = LEVELS[Math.min(lv, LEVELS.length-1)].holeWidth;
+    const hLeft = holeX[lv];
+    ctx.fillStyle = 'rgba(155,188,15,0.35)';
+    ctx.fillRect(hLeft, arrowY - 10, hw, 20);
+}
+
+function drawBall() {
+    if (state === 'gameover' || state === 'win') return;
+
+    // pixelated circle
+    const x = Math.round(ballX);
+    const y = Math.round(ballY);
+    const r = BALL_R;
+
+    ctx.fillStyle = GB.lightest;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.strokeStyle = GB.darkest;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI*2);
+    ctx.stroke();
+
+    // shine pixel
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(x - 2, y - 3, 3, 2);
+}
+
+function drawPutters() {
+    // Draw putter figure on each level
+    for (let i = 0; i < 5; i++) {
+        const sy = shelfY[i];
+        const side = puttSide[i];
+        const isActive = (i === level);
+        const anim = isActive ? putterAnim : 0;
+        drawPutterFigure(side, sy, anim);
+    }
+}
+
+function drawPutterFigure(side, shelfTop, anim) {
+    // Figure stands on the shelf
+    const groundY = shelfTop;
+    const flip = side === 'right' ? -1 : 1; // left putter faces right, right faces left
+    const baseX = side === 'left' ? PUTTER_W / 2 : W - PUTTER_W / 2;
+
+    ctx.save();
+    ctx.translate(baseX, groundY);
+    ctx.scale(flip, 1);
+
+    const sw = anim >= 1 ? 1 : 0; // swing state
+
+    // Body colour
+    const bodyC = GB.darkest;
+    const skinC = GB.lightest;
+    const clubC = GB.dark;
+
+    // Feet / legs
+    ctx.fillStyle = bodyC;
+    ctx.fillRect(-5, -22, 4, 12); // left leg
+    ctx.fillRect(2,  -22, 4, 12); // right leg
+
+    // Torso
+    ctx.fillRect(-6, -36, 12, 16);
+
+    // Head (slightly rounded Andy-like)
+    ctx.fillStyle = skinC;
+    ctx.fillRect(-7, -52, 14, 14);
+    ctx.fillStyle = bodyC;
+    ctx.fillRect(-7, -52, 14, 2);  // hair
+    ctx.fillRect(-7, -52, 2, 14);  // hair side
+
+    // Eyes
+    ctx.fillStyle = bodyC;
+    ctx.fillRect(-4, -47, 3, 3);
+    ctx.fillRect(2,  -47, 3, 3);
+
+    // Ears
+    ctx.fillStyle = skinC;
+    ctx.fillRect(-9, -47, 2, 5);
+    ctx.fillRect(7,  -47, 2, 5);
+
+    // Club arm
+    if (sw === 0) {
+        // Arms down, club at rest beside ball
+        ctx.fillStyle = bodyC;
+        ctx.fillRect(4, -36, 4, 18); // arm
+        ctx.fillStyle = clubC;
+        ctx.fillRect(6, -18, 3, 20); // club shaft
+        ctx.fillRect(3, 2,   9, 4);  // club head
+    } else {
+        // Follow-through: arm forward / up
+        ctx.fillStyle = bodyC;
+        ctx.fillRect(4, -40, 4, 10); // arm
+        ctx.fillStyle = clubC;
+        ctx.fillRect(6, -30, 3, 20); // shaft angled
+        ctx.fillRect(8, -12, 4, 9);  // club head
+    }
+
+    ctx.restore();
+}
+
+function drawHUD() {
+    // Level indicator at top
+    ctx.fillStyle = GB.darkest;
+    ctx.fillRect(0, 0, W, 22);
+    ctx.fillStyle = GB.light;
+    ctx.font = '8px "Press Start 2P"';
+    ctx.textAlign = 'left';
+    ctx.fillText('HOLE ' + (level + 1) + '/5', 8, 14);
+
+    // Speed dots
+    ctx.textAlign = 'right';
+    for (let i = 0; i < 5; i++) {
+        ctx.fillStyle = i < level ? GB.mid : GB.dark;
+        ctx.fillRect(W - 12 - i * 14, 6, 10, 10);
+    }
+}
+
+function drawMessages() {
+    if (state === 'win') {
+        drawOverlay('YOU WIN!\n\nSPACE\nOR TAP\nTO PLAY\nAGAIN', GB.dark);
+        return;
+    }
+    if (state === 'gameover') {
+        drawOverlay('MISS!\n\nSPACE\nOR TAP\nTO RETRY', '#000');
+        return;
+    }
+    if (flashTimer > 0 && msgText === 'MISS!') {
+        ctx.fillStyle = flashTimer % 8 < 4 ? '#000' : GB.lightest;
+        ctx.font = '16px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText('MISS!', W/2, gameAreaH()/2);
+    }
+    if (state === 'falling' && level > 0) {
+        ctx.fillStyle = GB.darkest;
+        ctx.font = '10px "Press Start 2P"';
+        ctx.textAlign = 'center';
+        ctx.fillText('NICE!', W/2, 40);
+    }
+}
+
+function drawOverlay(text, bg) {
+    ctx.fillStyle = 'rgba(15,56,15,0.82)';
+    ctx.fillRect(0, 0, W, H);
+
+    const lines = text.split('\n');
+    ctx.textAlign = 'center';
+    let startY = gameAreaH() / 2 - (lines.length * 22) / 2 + 10;
+    lines.forEach((line, i) => {
+        if (!line) return;
+        ctx.font = line.length > 6 ? '10px "Press Start 2P"' : '18px "Press Start 2P"';
+        ctx.fillStyle = GB.lightest;
+        ctx.fillText(line, W/2, startY + i * 22);
+    });
+
+    // tap to retry
+    if (state === 'gameover' || state === 'win') {
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillStyle = Math.floor(Date.now()/400)%2 ? GB.light : GB.mid;
+        ctx.fillText('TAP TO PLAY AGAIN', W/2, H - 80);
+    }
+}
+
+// Tap on canvas during gameover/win resets
+document.addEventListener('click', e => {
+    if (e.target === document.getElementById('gameCanvas')) {
+        if (state === 'gameover' || state === 'win') resetGame();
+    }
+});
+document.addEventListener('touchend', e => {
+    if (state === 'gameover' || state === 'win') resetGame();
+});
+
+</script>
 </body>
 </html>
