@@ -158,32 +158,67 @@ let btnRects = {};
 
 let shelves = [];
 
-// ── Leaderboard (localStorage)
-const LB_KEY = 'andyPuttingLB';
-let nameEntryChars = [];  // current typed name (max 8 chars)
-let nameInputActive = false;
+// ── Leaderboard (JSONBin — shared across all players)
+const JSONBIN_ID  = '69aab446d0ea881f40f4e3dd';
+const JSONBIN_KEY = '$2a$10$R1A.gZKB76C.5eQ7Mq9h6O68el4D/RL3Es4vGgyX3Ya4ePgEHslv2';
+const JSONBIN_URL = 'https://api.jsonbin.io/v3/b/' + JSONBIN_ID;
+
+let nameEntryChars = [];
+let cachedLB = [];       // cached leaderboard from last fetch
+let lbLoading = false;   // true while fetching
+
+async function fetchLeaderboard() {
+    lbLoading = true;
+    try {
+        const res = await fetch(JSONBIN_URL + '/latest', {
+            headers: { 'X-Access-Key': JSONBIN_KEY }
+        });
+        const data = await res.json();
+        cachedLB = (data.record && data.record.scores) ? data.record.scores : [];
+    } catch(e) {
+        cachedLB = [];
+    }
+    lbLoading = false;
+}
+
+async function saveLeaderboard(lb) {
+    try {
+        await fetch(JSONBIN_URL, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Access-Key': JSONBIN_KEY
+            },
+            body: JSON.stringify({ scores: lb })
+        });
+        cachedLB = lb;
+    } catch(e) {}
+}
 
 function getLeaderboard() {
-    try { return JSON.parse(localStorage.getItem(LB_KEY)) || []; } catch(e) { return []; }
+    return cachedLB;
 }
-function saveLeaderboard(lb) {
-    try { localStorage.setItem(LB_KEY, JSON.stringify(lb)); } catch(e) {}
-}
+
 function isTopFive(score) {
     if (score === 0) return false;
-    const lb = getLeaderboard();
+    const lb = cachedLB;
     return lb.length < 5 || score > lb[lb.length - 1].score;
 }
-function addToLeaderboard(name, score) {
-    const lb = getLeaderboard();
+
+async function addToLeaderboard(name, score) {
+    // Re-fetch latest before writing to avoid overwrites
+    await fetchLeaderboard();
+    const lb = [...cachedLB];
     lb.push({ name: name.toUpperCase().trim() || 'ANON', score });
     lb.sort((a, b) => b.score - a.score);
-    saveLeaderboard(lb.slice(0, 5));
+    await saveLeaderboard(lb.slice(0, 5));
 }
-function submitName() {
+
+async function submitName() {
     if (state !== 'nameEntry') return;
     const name = nameEntryChars.join('') || 'ANON';
-    addToLeaderboard(name, totalHoles);
+    state = 'saving'; // brief saving state
+    await addToLeaderboard(name, totalHoles);
     nameEntryChars = [];
     state = 'gameover';
 }
@@ -203,6 +238,7 @@ function startGame() {
 
     buildLayout(false);
     initLevel(0, false);
+    fetchLeaderboard(); // pre-load leaderboard
 
     document.addEventListener('keydown', e => {
         if (e.code === 'Space') {
@@ -236,7 +272,7 @@ function startGame() {
     document.getElementById('nameSubmitBtn').addEventListener('touchend', e => {
         e.preventDefault();
         nameEntryChars = nameInput.value.toUpperCase().split('').slice(0, 8);
-        submitName();
+        submitName(); // async, state->saving->gameover
     });
 
     requestAnimationFrame(loop);
@@ -260,9 +296,20 @@ function inRect(p, r) {
 
 // ── PUTT button (HTML element): handles both game putt + overlays
 function handlePuttBtn() {
-    if (state === 'win') {
-        doKeepPlaying();
-    } else if (state === 'gameover') {
+    if (state === 'saving') {
+        ctx.fillStyle = 'rgba(5,15,5,0.92)';
+        ctx.fillRect(0, 0, CW, CH);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = GB.light;
+        ctx.font = '10px "Press Start 2P"';
+        ctx.fillText('SAVING SCORE...', CW/2, CH/2 - 10);
+        ctx.fillStyle = Math.floor(Date.now()/300)%2 ? GB.mid : GB.dark;
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillText('PLEASE WAIT', CW/2, CH/2 + 14);
+        return;
+    }
+
+    if (state === 'gameover') {
         doRetry();
     } else {
         onPutt();
@@ -326,10 +373,20 @@ function handleCanvasTap(p) {
         if (inRect(p, btnRects.retry))  { doRetry(); return; }
         if (inRect(p, btnRects.goHome)) { window.location.href = 'index.html'; return; }
     }
-    if (state === 'win') {
-        if (inRect(p, btnRects.keepPlaying)) { doKeepPlaying(); return; }
-        if (inRect(p, btnRects.goHome))      { window.location.href = 'index.html'; return; }
+    if (state === 'saving') {
+        ctx.fillStyle = 'rgba(5,15,5,0.92)';
+        ctx.fillRect(0, 0, CW, CH);
+        ctx.textAlign = 'center';
+        ctx.fillStyle = GB.light;
+        ctx.font = '10px "Press Start 2P"';
+        ctx.fillText('SAVING SCORE...', CW/2, CH/2 - 10);
+        ctx.fillStyle = Math.floor(Date.now()/300)%2 ? GB.mid : GB.dark;
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillText('PLEASE WAIT', CW/2, CH/2 + 14);
+        return;
     }
+
+    // win state no longer used — auto-advances
 }
 
 function doRetry() {
@@ -348,28 +405,69 @@ function doKeepPlaying() {
 function buildLayout(extra) {
     shelves = [];
     const slotH = GAME_H / 5;
+    // Terrain active from hole 11 onward (totalHoles >= 10), every other shelf
+    const terrainActive = extra && totalHoles >= 10;
     for (let i = 0; i < 5; i++) {
         const shelfY = Math.round(HUD_H + slotH * (i + 1) - SHELF_H);
         const hw = extra ? LEVEL_HOLES[4] : LEVEL_HOLES[i];
-        // Putter side alternates; in extra mode continue alternating from previous set
         const parity = extra ? (i % 2 === 0 ? 'right' : 'left') : (i % 2 === 0 ? 'left' : 'right');
         const side = parity;
         let holeLeft;
         if (extra) {
-            // Random, 20–80% width, never within 15% of each wall
             const minX = Math.round(CW * 0.20);
             const maxX = Math.round(CW * 0.80) - hw;
             holeLeft = minX + Math.floor(Math.random() * Math.max(1, maxX - minX));
         } else if (i === 4) {
-            // Level 5: 70% along from putter side
             holeLeft = side === 'left'
                 ? Math.round(CW * 0.70) - hw
                 : Math.round(CW * 0.30);
         } else {
             holeLeft = side === 'left' ? CW - hw - 26 : 26;
         }
-        shelves.push({ y: shelfY, holeLeft, holeRight: holeLeft + hw, side });
+
+        // Generate terrain for every other shelf when active
+        let terrain = null;
+        if (terrainActive && i % 2 === 1) {
+            terrain = generateTerrain(side, holeLeft, holeLeft + hw);
+        }
+
+        shelves.push({ y: shelfY, holeLeft, holeRight: holeLeft + hw, side, terrain });
     }
+}
+
+function generateTerrain(side, holeLeft, holeRight) {
+    // Terrain width = ~25% of CW, placed randomly but:
+    // - not within 5% of CW from putter side
+    // - not overlapping hole (with 5% margin each side)
+    const TW     = Math.round(CW * 0.22);  // terrain width
+    const margin = Math.round(CW * 0.05);
+    const putterEdge = side === 'left' ? margin + 50 : CW - margin - 50; // putter is at ~40px
+
+    // Safe zone: avoid putter area and hole area
+    const holePad  = Math.round(CW * 0.05);
+    const safeZones = [
+        // putter zone
+        side === 'left' ? [0, putterEdge] : [putterEdge, CW],
+        // hole zone
+        [holeLeft - holePad, holeRight + holePad]
+    ];
+
+    // Try random positions until we find a clear spot (max 20 tries)
+    for (let attempt = 0; attempt < 20; attempt++) {
+        const tx = Math.round(CW * 0.08) + Math.floor(Math.random() * (CW - TW - Math.round(CW * 0.16)));
+        const txEnd = tx + TW;
+        const blocked = safeZones.some(([a, b]) => tx < b && txEnd > a);
+        if (!blocked) {
+            return {
+                type: Math.random() < 0.5 ? 'hill' : 'dip',
+                startX: tx,
+                endX:   txEnd,
+                peakX:  tx + Math.round(TW / 2),
+                height: Math.round(SHELF_H / 2)  // half shelf depth
+            };
+        }
+    }
+    return null; // couldn't place
 }
 
 // ── Level init
@@ -391,7 +489,7 @@ function initLevel(lv, keepTotal) {
     if (!keepTotal) { totalHoles = 0; extraMode = false; }
     const s = shelves[lv];
     ballX = s.side === 'left' ? 40 : CW - 40;
-    ballY = s.y - BALL_R;
+    ballY = getBallSurfaceY(s, ballX);
     initArrow(lv);
 }
 
@@ -412,6 +510,45 @@ function onPutt() {
     }
 }
 
+// ── Terrain helpers
+function getTerrainSlopeAt(terrain, x) {
+    // Returns slope: -1 (uphill going right = slow), 0 (flat), +1 (downhill going right = fast)
+    if (!terrain) return 0;
+    const { startX, endX, peakX, type } = terrain;
+    if (x < startX || x > endX) return 0;
+    // Going up left half, down right half (for hill); opposite for dip
+    const onLeftHalf  = x < peakX;
+    if (type === 'hill') return onLeftHalf ? -1 : 1;   // upslope left, downslope right
+    else                 return onLeftHalf ?  1 : -1;   // downslope left, upslope right
+}
+
+function getTerrainSpeedMult(shelf, x, dir) {
+    if (!shelf.terrain) return 1.0;
+    const slope = getTerrainSlopeAt(shelf.terrain, x);
+    // slope * dir: positive = going downhill, negative = going uphill
+    const gradient = slope * dir;
+    if (gradient > 0) return 1.35;  // downhill: faster
+    if (gradient < 0) return 0.65;  // uphill: slower
+    return 1.0;
+}
+
+function getTerrainYOffset(terrain, x) {
+    // Returns how many px above the base shelf surface the ball sits
+    if (!terrain) return 0;
+    const { startX, endX, peakX, height, type } = terrain;
+    if (x < startX || x > endX) return 0;
+    const tw = endX - startX;
+    // Smooth cosine curve
+    const t = (x - startX) / tw;
+    const curve = Math.sin(t * Math.PI); // 0 at edges, 1 at peak
+    return type === 'hill' ? -height * curve : height * curve; // hill = up, dip = down
+}
+
+function getBallSurfaceY(shelf, x) {
+    const baseY = shelf.y - BALL_R;
+    return baseY + getTerrainYOffset(shelf.terrain, x);
+}
+
 // ── Update
 function update() {
     swingTimer++;
@@ -420,14 +557,19 @@ function update() {
         const s   = shelves[level];
         const min = s.side === 'left' ? ballX : 4;
         const max = s.side === 'left' ? CW - 4 : ballX;
-        arrowX += arrowDir * arrowSpeed;
+        const terrainMult = getTerrainSpeedMult(s, arrowX, arrowDir);
+        arrowX += arrowDir * arrowSpeed * terrainMult;
         if (arrowX >= max) { arrowX = max; arrowDir = -1; }
         if (arrowX <= min) { arrowX = min; arrowDir =  1; }
     }
 
     if (state === 'rolling') {
-        ballX += ballVX;
         const s = shelves[level];
+        const ballDir = ballVX > 0 ? 1 : -1;
+        const terrainMult = getTerrainSpeedMult(s, ballX, ballDir);
+        ballX += ballVX * terrainMult;
+        // Keep ball on terrain surface
+        ballY = getBallSurfaceY(s, ballX);
         if (ballX > s.holeLeft + BALL_R && ballX < s.holeRight - BALL_R) {
             state = 'falling';
             ballVY = 2;
@@ -445,12 +587,16 @@ function update() {
         ballVX *= 0.88;
         if (flashTimer > 0) flashTimer--;
         if (flashTimer === 0) {
-            if (isTopFive(totalHoles)) {
-                state = 'nameEntry';
-                nameEntryChars = [];
-            } else {
-                state = 'gameover';
-            }
+            // Refresh leaderboard then decide
+            fetchLeaderboard().then(() => {
+                if (isTopFive(totalHoles)) {
+                    state = 'nameEntry';
+                    nameEntryChars = [];
+                } else {
+                    state = 'gameover';
+                }
+            });
+            flashTimer = -1; // prevent re-triggering
         }
     }
 
@@ -468,7 +614,7 @@ function update() {
                 level++;
                 const ns = shelves[level];
                 ballX = ns.side === 'left' ? 40 : CW - 40;
-                ballY = ns.y - BALL_R;
+                ballY = getBallSurfaceY(ns, ballX);
                 initLevel(level, true);
             }
         } else {
@@ -478,7 +624,10 @@ function update() {
                     buildLayout(true);
                     initLevel(0, true);
                 } else {
-                    state = 'win';
+                    // Auto-advance to next 5 holes (no win screen)
+                    extraMode = true;
+                    buildLayout(true);
+                    initLevel(0, true);
                 }
             }
         }
@@ -496,6 +645,7 @@ function loop() {
 function draw() {
     ctx.fillStyle = GB.lightest;
     ctx.fillRect(0, 0, CW, CH);
+    drawGrassBar();
     drawShelves();
     drawBall();
     drawArrow();
@@ -548,6 +698,11 @@ function drawShelves() {
         ctx.fillStyle = GB.dark;
         ctx.fillRect(hl, s.y, hw, 2);
 
+        // ── Terrain (hill or dip) ──
+        if (s.terrain) {
+            drawTerrain(s);
+        }
+
         // ── Flag behind hole on far side from putter ──
         const poleX = s.side === 'left' ? hr + 10 : hl - 10;
         const poleTop = s.y - 20;
@@ -566,6 +721,56 @@ function drawShelves() {
         }
         ctx.closePath(); ctx.fill();
         ctx.strokeStyle = GB.darkest; ctx.lineWidth = 1; ctx.stroke();
+    }
+}
+
+function drawTerrain(s) {
+    const { terrain, y } = s;
+    if (!terrain) return;
+    const { startX, endX, peakX, height, type } = terrain;
+    const TW   = endX - startX;
+    const steps = TW; // one pixel per step
+    const baseY  = y; // top of shelf
+
+    // Build terrain polygon
+    ctx.beginPath();
+    ctx.moveTo(startX, baseY);
+    for (let px = 0; px <= TW; px++) {
+        const x = startX + px;
+        const t = px / TW;
+        const curve = Math.sin(t * Math.PI);
+        const yOff = type === 'hill' ? -height * curve : height * curve;
+        ctx.lineTo(x, baseY + yOff);
+    }
+    ctx.lineTo(endX, baseY);
+    ctx.closePath();
+
+    // Fill terrain body (same dark green as shelf)
+    ctx.fillStyle = GB.darkest;
+    ctx.fill();
+
+    // Top surface highlight strip
+    ctx.beginPath();
+    ctx.moveTo(startX, baseY);
+    for (let px = 0; px <= TW; px++) {
+        const x = startX + px;
+        const t = px / TW;
+        const curve = Math.sin(t * Math.PI);
+        const yOff = type === 'hill' ? -height * curve : height * curve;
+        ctx.lineTo(x, baseY + yOff);
+    }
+    ctx.strokeStyle = GB.dark;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    // Tiny pixel dashes on slope surface for GB texture
+    ctx.fillStyle = GB.dark;
+    for (let px = 4; px < TW - 4; px += 8) {
+        const x = startX + px;
+        const t = px / TW;
+        const curve = Math.sin(t * Math.PI);
+        const yOff = type === 'hill' ? -height * curve : height * curve;
+        ctx.fillRect(x, baseY + yOff - 1, 3, 1);
     }
 }
 
@@ -603,7 +808,7 @@ function drawArrow() {
 }
 
 function drawPutter() {
-    if (state === 'win' || state === 'gameover') return;
+    if (state === 'win' || state === 'gameover' || state === 'saving') return;
     const s     = shelves[level];
     const swing = putterSwing === 1 && swingTimer < 25;
     const baseX = s.side === 'left' ? 20 : CW - 20;
@@ -699,6 +904,40 @@ function drawAndyPutter(swing) {
     ctx.fillStyle = D;
     ctx.fillRect(-4,-41,8,2); ctx.fillRect(-5,-42,2,1); ctx.fillRect(3,-42,2,1);
     ctx.fillStyle = GB.dark; ctx.fillRect(-7,-43,14,1);
+}
+
+function drawGrassBar() {
+    // Gameboy-style grass strip behind PUTT button
+    const grassY = CH - BTN_H;
+    ctx.fillStyle = GB.dark;
+    ctx.fillRect(0, grassY, CW, BTN_H);
+
+    // Grass tuft row along top edge
+    ctx.fillStyle = GB.mid;
+    ctx.fillRect(0, grassY, CW, 3); // base highlight strip
+
+    // Pixel grass blades
+    ctx.fillStyle = GB.darkest;
+    for (let x = 2; x < CW; x += 7) {
+        // Blade 1
+        ctx.fillRect(x,     grassY - 5, 2, 5);
+        ctx.fillRect(x - 1, grassY - 7, 2, 3);
+        // Blade 2 (shorter)
+        ctx.fillRect(x + 3, grassY - 3, 2, 3);
+    }
+    // Second row of shorter blades offset
+    ctx.fillStyle = GB.dark;
+    for (let x = 5; x < CW; x += 7) {
+        ctx.fillRect(x,     grassY - 4, 2, 4);
+        ctx.fillRect(x - 1, grassY - 5, 1, 2);
+    }
+    // Ground texture dots
+    ctx.fillStyle = GB.mid;
+    for (let x = 3; x < CW; x += 12) {
+        ctx.fillRect(x,     grassY + 6,  3, 2);
+        ctx.fillRect(x + 6, grassY + 12, 2, 2);
+        ctx.fillRect(x + 2, grassY + 18, 3, 2);
+    }
 }
 
 function drawHUD() {
@@ -844,20 +1083,20 @@ function drawOverlays() {
         }
     }
 
-    if (state === 'win') {
-        ctx.fillStyle = 'rgba(5,15,5,0.88)';
+    if (state === 'saving') {
+        ctx.fillStyle = 'rgba(5,15,5,0.92)';
         ctx.fillRect(0, 0, CW, CH);
         ctx.textAlign = 'center';
         ctx.fillStyle = GB.light;
-        ctx.font = '18px "Press Start 2P"';
-        ctx.fillText('YOU WIN!', CW / 2, CH / 2 - 100);
-        ctx.font = '7px "Press Start 2P"';
-        ctx.fillStyle = GB.mid;
-        ctx.fillText('ALL 5 HOLES DONE!',       CW / 2, CH / 2 - 74);
-        ctx.fillText('HOLES COMPLETED: ' + totalHoles, CW / 2, CH / 2 - 58);
-        btnRects.keepPlaying = makeBtn('KEEP PLAYING', CW/2, CH/2 - 38, 180, 32, true);
-        btnRects.goHome      = makeBtn('GO HOME',      CW/2, CH/2 +  8, 180, 32, false);
+        ctx.font = '10px "Press Start 2P"';
+        ctx.fillText('SAVING SCORE...', CW/2, CH/2 - 10);
+        ctx.fillStyle = Math.floor(Date.now()/300)%2 ? GB.mid : GB.dark;
+        ctx.font = '8px "Press Start 2P"';
+        ctx.fillText('PLEASE WAIT', CW/2, CH/2 + 14);
+        return;
     }
+
+    // win state removed — game auto-continues after 5 holes
 }
 </script>
 </body>
