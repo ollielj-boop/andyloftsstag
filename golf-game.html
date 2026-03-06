@@ -201,8 +201,9 @@ function getLeaderboard() {
 
 function isTopFive(score) {
     if (score === 0) return false;
-    const lb = cachedLB;
-    return lb.length < 5 || score > lb[lb.length - 1].score;
+    const lb = cachedLB || [];
+    if (lb.length < 5) return true;
+    return score > lb[lb.length - 1].score;
 }
 
 async function addToLeaderboard(name, score) {
@@ -296,97 +297,21 @@ function inRect(p, r) {
 
 // ── PUTT button (HTML element): handles both game putt + overlays
 function handlePuttBtn() {
-    if (state === 'saving') {
-        ctx.fillStyle = 'rgba(5,15,5,0.92)';
-        ctx.fillRect(0, 0, CW, CH);
-        ctx.textAlign = 'center';
-        ctx.fillStyle = GB.light;
-        ctx.font = '10px "Press Start 2P"';
-        ctx.fillText('SAVING SCORE...', CW/2, CH/2 - 10);
-        ctx.fillStyle = Math.floor(Date.now()/300)%2 ? GB.mid : GB.dark;
-        ctx.font = '8px "Press Start 2P"';
-        ctx.fillText('PLEASE WAIT', CW/2, CH/2 + 14);
-        return;
-    }
-
-    if (state === 'gameover') {
-        doRetry();
-    } else {
-        onPutt();
-    }
+    if (state === 'saving') return;
+    if (state === 'nameEntry') { submitName(); return; }
+    if (state === 'gameover') { doRetry(); return; }
+    onPutt();
 }
 
 // ── Canvas tap: handles overlay buttons + HUD home link
 function handleCanvasTap(p) {
-    // HUD home tap (left half of top bar)
-    if (p.y <= HUD_H && p.x < CW / 2) {
-        window.location.href = 'index.html';
-        return;
-    }
-    if (state === 'nameEntry') {
-        ctx.fillStyle = 'rgba(5,15,5,0.92)';
-        ctx.fillRect(0, 0, CW, CH);
-        ctx.textAlign = 'center';
-
-        // Score box
-        const boxX = CW/2 - 130, boxY = 40, boxW = 260, boxH = 70;
-        ctx.fillStyle = GB.darkest;
-        ctx.fillRect(boxX, boxY, boxW, boxH);
-        ctx.strokeStyle = GB.light; ctx.lineWidth = 3;
-        ctx.strokeRect(boxX, boxY, boxW, boxH);
-        ctx.fillStyle = GB.light;
-        ctx.font = '9px "Press Start 2P"';
-        ctx.fillText('HOLES COMPLETED', CW/2, boxY + 22);
-        ctx.fillStyle = GB.lightest;
-        ctx.font = '28px "Press Start 2P"';
-        ctx.fillText(totalHoles, CW/2, boxY + 58);
-
-        // New high score message
-        ctx.fillStyle = Math.floor(Date.now()/400)%2 ? GB.light : GB.mid;
-        ctx.font = '9px "Press Start 2P"';
-        ctx.fillText('NEW HIGH SCORE!', CW/2, 138);
-
-        ctx.fillStyle = GB.lightest;
-        ctx.font = '8px "Press Start 2P"';
-        ctx.fillText('ENTER YOUR NAME:', CW/2, 162);
-
-        // Name display (typed chars or placeholder)
-        const displayName = nameEntryChars.join('') || '________';
-        const blink = Math.floor(Date.now()/500)%2 ? '_' : ' ';
-        ctx.fillStyle = GB.light;
-        ctx.font = '14px "Press Start 2P"';
-        ctx.fillText(nameEntryChars.join('') + (nameEntryChars.length < 8 ? blink : ''), CW/2, 196);
-
-        // Hint
-        ctx.fillStyle = GB.dark;
-        ctx.font = '6px "Press Start 2P"';
-        ctx.fillText('TAP FIELD BELOW TO TYPE', CW/2, 224);
-        ctx.fillText('SPACE/ENTER TO CONFIRM', CW/2, 236);
-        return; // skip other overlays
-    }
-
-    if (state === 'nameEntry') {
-        // tapping canvas outside the HTML input still allows submitName if name entered
-        return;
-    }
+    if (p.y <= HUD_H && p.x < CW / 2) { window.location.href = 'index.html'; return; }
+    if (state === 'nameEntry') return;
+    if (state === 'saving')    return;
     if (state === 'gameover') {
         if (inRect(p, btnRects.retry))  { doRetry(); return; }
         if (inRect(p, btnRects.goHome)) { window.location.href = 'index.html'; return; }
     }
-    if (state === 'saving') {
-        ctx.fillStyle = 'rgba(5,15,5,0.92)';
-        ctx.fillRect(0, 0, CW, CH);
-        ctx.textAlign = 'center';
-        ctx.fillStyle = GB.light;
-        ctx.font = '10px "Press Start 2P"';
-        ctx.fillText('SAVING SCORE...', CW/2, CH/2 - 10);
-        ctx.fillStyle = Math.floor(Date.now()/300)%2 ? GB.mid : GB.dark;
-        ctx.font = '8px "Press Start 2P"';
-        ctx.fillText('PLEASE WAIT', CW/2, CH/2 + 14);
-        return;
-    }
-
-    // win state no longer used — auto-advances
 }
 
 function doRetry() {
@@ -425,9 +350,25 @@ function buildLayout(extra) {
             holeLeft = side === 'left' ? CW - hw - 26 : 26;
         }
 
-        // Generate terrain for every other shelf when active
+        // Generate terrain
         let terrain = null;
-        if (terrainActive && i % 2 === 1) {
+        // Hill-shelf: from hole 20+, every 5th hole (global hole index divisible by 5)
+        const globalHoleIdx = totalHoles + i; // approximate global index
+        const isHillShelf = extra && totalHoles >= 19 && (i % 5 === 4);
+        if (isHillShelf) {
+            // Entire shelf is a hill — hole sits at the peak
+            const hillW = Math.round(CW * 0.22);
+            const holeMid = holeLeft + hw / 2;
+            const hillStart = Math.round(holeMid - hillW / 2);
+            const hillEnd   = Math.round(holeMid + hillW / 2);
+            terrain = {
+                type: 'hillshelf',
+                startX: Math.max(0, hillStart),
+                endX:   Math.min(CW, hillEnd),
+                peakX:  Math.round(holeMid),
+                height: Math.round(SHELF_H / 2)
+            };
+        } else if (terrainActive && i % 2 === 1) {
             terrain = generateTerrain(side, holeLeft, holeLeft + hw);
         }
 
@@ -512,14 +453,12 @@ function onPutt() {
 
 // ── Terrain helpers
 function getTerrainSlopeAt(terrain, x) {
-    // Returns slope: -1 (uphill going right = slow), 0 (flat), +1 (downhill going right = fast)
     if (!terrain) return 0;
     const { startX, endX, peakX, type } = terrain;
     if (x < startX || x > endX) return 0;
-    // Going up left half, down right half (for hill); opposite for dip
-    const onLeftHalf  = x < peakX;
-    if (type === 'hill') return onLeftHalf ? -1 : 1;   // upslope left, downslope right
-    else                 return onLeftHalf ?  1 : -1;   // downslope left, upslope right
+    const onLeftHalf = x < peakX;
+    if (type === 'hill' || type === 'hillshelf') return onLeftHalf ? -1 : 1;
+    else return onLeftHalf ? 1 : -1; // dip
 }
 
 function getTerrainSpeedMult(shelf, x, dir) {
@@ -533,15 +472,14 @@ function getTerrainSpeedMult(shelf, x, dir) {
 }
 
 function getTerrainYOffset(terrain, x) {
-    // Returns how many px above the base shelf surface the ball sits
     if (!terrain) return 0;
-    const { startX, endX, peakX, height, type } = terrain;
+    const { startX, endX, height, type } = terrain;
     if (x < startX || x > endX) return 0;
     const tw = endX - startX;
-    // Smooth cosine curve
-    const t = (x - startX) / tw;
-    const curve = Math.sin(t * Math.PI); // 0 at edges, 1 at peak
-    return type === 'hill' ? -height * curve : height * curve; // hill = up, dip = down
+    const t  = (x - startX) / tw;
+    const curve = Math.sin(t * Math.PI);
+    if (type === 'hill' || type === 'hillshelf') return -height * curve;
+    return height * curve; // dip
 }
 
 function getBallSurfaceY(shelf, x) {
@@ -727,50 +665,94 @@ function drawShelves() {
 function drawTerrain(s) {
     const { terrain, y } = s;
     if (!terrain) return;
-    const { startX, endX, peakX, height, type } = terrain;
-    const TW   = endX - startX;
-    const steps = TW; // one pixel per step
-    const baseY  = y; // top of shelf
+    const { startX, endX, height, type } = terrain;
+    const TW    = endX - startX;
+    const baseY = y;
 
-    // Build terrain polygon
-    ctx.beginPath();
-    ctx.moveTo(startX, baseY);
-    for (let px = 0; px <= TW; px++) {
-        const x = startX + px;
+    function curveY(px) {
         const t = px / TW;
         const curve = Math.sin(t * Math.PI);
-        const yOff = type === 'hill' ? -height * curve : height * curve;
-        ctx.lineTo(x, baseY + yOff);
+        return (type === 'hill' || type === 'hillshelf') ? -height * curve : height * curve;
     }
-    ctx.lineTo(endX, baseY);
-    ctx.closePath();
 
-    // Fill terrain body (same dark green as shelf)
-    ctx.fillStyle = GB.darkest;
-    ctx.fill();
-
-    // Top surface highlight strip
-    ctx.beginPath();
-    ctx.moveTo(startX, baseY);
-    for (let px = 0; px <= TW; px++) {
-        const x = startX + px;
-        const t = px / TW;
-        const curve = Math.sin(t * Math.PI);
-        const yOff = type === 'hill' ? -height * curve : height * curve;
-        ctx.lineTo(x, baseY + yOff);
+    if (type === 'hillshelf') {
+        // Draw hill spanning hole — same style as regular hill but centred on hole
+        ctx.beginPath();
+        ctx.moveTo(startX, baseY);
+        for (let px = 0; px <= TW; px++) ctx.lineTo(startX + px, baseY + curveY(px));
+        ctx.lineTo(endX, baseY);
+        ctx.closePath();
+        ctx.fillStyle = GB.darkest; ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(startX, baseY);
+        for (let px = 0; px <= TW; px++) ctx.lineTo(startX + px, baseY + curveY(px));
+        ctx.strokeStyle = GB.dark; ctx.lineWidth = 2; ctx.stroke();
+        ctx.fillStyle = GB.dark;
+        for (let px = 4; px < TW - 4; px += 8) ctx.fillRect(startX + px, baseY + curveY(px) - 1, 3, 1);
+        return;
     }
-    ctx.strokeStyle = GB.dark;
-    ctx.lineWidth = 2;
-    ctx.stroke();
 
-    // Tiny pixel dashes on slope surface for GB texture
-    ctx.fillStyle = GB.dark;
-    for (let px = 4; px < TW - 4; px += 8) {
-        const x = startX + px;
-        const t = px / TW;
-        const curve = Math.sin(t * Math.PI);
-        const yOff = type === 'hill' ? -height * curve : height * curve;
-        ctx.fillRect(x, baseY + yOff - 1, 3, 1);
+    if (type === 'hill') {
+        // Hill: same dark colour as shelf, seamless
+        ctx.beginPath();
+        ctx.moveTo(startX, baseY);
+        for (let px = 0; px <= TW; px++) {
+            ctx.lineTo(startX + px, baseY + curveY(px));
+        }
+        ctx.lineTo(endX, baseY);
+        ctx.closePath();
+        ctx.fillStyle = GB.darkest;
+        ctx.fill();
+
+        // Surface highlight line (same as shelf top)
+        ctx.beginPath();
+        ctx.moveTo(startX, baseY);
+        for (let px = 0; px <= TW; px++) {
+            ctx.lineTo(startX + px, baseY + curveY(px));
+        }
+        ctx.strokeStyle = GB.dark;
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Texture dashes on slope
+        ctx.fillStyle = GB.dark;
+        for (let px = 4; px < TW - 4; px += 8) {
+            ctx.fillRect(startX + px, baseY + curveY(px) - 1, 3, 1);
+        }
+    } else {
+        // Dip: sandy/pale with dotted pattern
+        ctx.beginPath();
+        ctx.moveTo(startX, baseY);
+        for (let px = 0; px <= TW; px++) {
+            ctx.lineTo(startX + px, baseY + curveY(px));
+        }
+        ctx.lineTo(endX, baseY);
+        ctx.closePath();
+        // Pale sandy fill
+        ctx.fillStyle = GB.lightest;
+        ctx.fill();
+
+        // Sandy dot pattern inside dip
+        for (let px = 3; px < TW - 3; px += 5) {
+            const yOff = curveY(px);
+            const dipDepth = Math.abs(yOff);
+            for (let dy = 2; dy < dipDepth - 1; dy += 4) {
+                // Offset every other row
+                const xOff = (Math.floor(dy / 4) % 2) * 2;
+                ctx.fillStyle = GB.mid;
+                ctx.fillRect(startX + px + xOff, baseY + yOff - dy + dipDepth * 0.2, 2, 2);
+            }
+        }
+
+        // Dip edge lines
+        ctx.beginPath();
+        ctx.moveTo(startX, baseY);
+        for (let px = 0; px <= TW; px++) {
+            ctx.lineTo(startX + px, baseY + curveY(px));
+        }
+        ctx.strokeStyle = GB.mid;
+        ctx.lineWidth = 1;
+        ctx.stroke();
     }
 }
 
