@@ -913,8 +913,7 @@ function drawAndyPutter(swing) {
 }
 
 // ── Background scenery (from hole 6 / extraMode) ──
-// Seed changes per PAGE (every 5 holes). Trees on shelves, clouds in gaps.
-// Nothing within 8% of any hole.
+// Golf course style: hard pixel outlines, solid fills. Trees, bushes, clouds only.
 
 function drawBackground() {
     const pageSeed = Math.floor(totalHoles / 5);
@@ -923,218 +922,320 @@ function drawBackground() {
         return Math.abs(x - Math.floor(x));
     }
 
-    const A    = 0.18;  // alpha
-    const HC   = Math.round(CW * 0.08); // hole clearance px
+    const D = GB.darkest;
+    const M = GB.dark;
+    const L = GB.mid;
+    const A = 0.82;
+    const HC = Math.round(CW * 0.08);
 
     const shelfData = shelves.map(s => ({ y: s.y, hl: s.holeLeft, hr: s.holeRight }));
 
-    function clearOfHole(si, x, margin) {
+    function clearOfHole(si, x, halfW) {
         const s = shelfData[si];
-        return x < s.hl - margin || x > s.hr + margin;
+        return (x + halfW) < (s.hl - HC) || (x - halfW) > (s.hr + HC);
     }
 
-    // ════════════════════════════════════════════════
-    // CLOUDS — one per inter-shelf gap, very detailed
-    // ════════════════════════════════════════════════
+    // ── Outlined filled rect helper ──
+    function oRect(x, y, w, h, fill) {
+        ctx.fillStyle = fill;
+        ctx.fillRect(x, y, w, h);
+        ctx.strokeStyle = D; ctx.lineWidth = 1;
+        ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+    }
+
+    // ════════════════════════════════════════
+    // PINE TREE — hard stepped tiers
+    // ════════════════════════════════════════
+    function drawPine(tx, gy, sz) {
+        const p = v => Math.round(v * sz);
+        // Trunk
+        oRect(tx - p(3), gy - p(12), p(6), p(12), M);
+        ctx.fillStyle = D;
+        ctx.fillRect(tx - p(2), gy - p(11), p(2), p(10)); // shadow stripe
+
+        // 5 hard-edged foliage tiers, each outlined
+        const tiers = [[26,9],[21,9],[16,9],[11,8],[6,7]];
+        tiers.forEach(([w, h], ti) => {
+            const ty = gy - p(12) - p(ti * 10 + h);
+            // Dark body
+            ctx.fillStyle = D;
+            ctx.fillRect(tx - p(w/2), ty, p(w), p(h));
+            // Mid inner
+            ctx.fillStyle = M;
+            ctx.fillRect(tx - p(w/2) + 2, ty + 2, p(w) - 4, p(h) - 3);
+            // Light highlight strip on top
+            ctx.fillStyle = L;
+            ctx.fillRect(tx - p(w/2) + 3, ty + 1, p(w) - 6, 2);
+            // Hard outline
+            ctx.strokeStyle = D; ctx.lineWidth = 1;
+            ctx.strokeRect(tx - p(w/2) + 0.5, ty + 0.5, p(w) - 1, p(h) - 1);
+        });
+        // Pointed tip
+        oRect(tx - p(2), gy - p(12) - p(51), p(4), p(8), D);
+        oRect(tx - p(1), gy - p(12) - p(56), p(2), p(5), D);
+    }
+
+    // ════════════════════════════════════════
+    // PALM TREE — segmented trunk + hard fronds
+    // ════════════════════════════════════════
+    function drawPalm(tx, gy, sz) {
+        const p = v => Math.round(v * sz);
+        const trunkH = p(38);
+        const topY = gy - trunkH;
+
+        // Trunk — segmented with outlines per segment
+        const segs = 5;
+        for (let s2 = 0; s2 < segs; s2++) {
+            const sy   = gy - Math.round(trunkH * (s2 + 1) / segs);
+            const sh   = Math.round(trunkH / segs) + 1;
+            const lean = Math.round(Math.sin((s2 / segs) * Math.PI) * p(3));
+            const sw   = p(5) - Math.round(s2 * 0.3);
+            ctx.fillStyle = s2 % 2 === 0 ? D : M;
+            ctx.fillRect(tx - p(2) + lean, sy, sw, sh + 2);
+            ctx.strokeStyle = D; ctx.lineWidth = 1;
+            ctx.strokeRect(tx - p(2) + lean + 0.5, sy + 0.5, sw - 1, sh + 1);
+        }
+
+        // Fronds — 7 hard rectangles fanning out with outlines
+        const fronds = [
+            [-p(22), -p(6),  p(20), p(5), -15],
+            [-p(16), -p(13), p(16), p(5), -8],
+            [-p(8),  -p(18), p(13), p(4), -3],
+            [-p(1),  -p(20), p(12), p(4),  0],
+            [p(6),   -p(17), p(13), p(4),  3],
+            [p(10),  -p(12), p(14), p(5),  8],
+            [p(14),  -p(5),  p(16), p(5),  14],
+        ];
+        fronds.forEach(([fx, fy, fw, fh]) => {
+            ctx.fillStyle = D;
+            ctx.fillRect(tx + fx, topY + fy, fw, fh);
+            ctx.fillStyle = M;
+            ctx.fillRect(tx + fx + 1, topY + fy + 1, fw - 2, fh - 2);
+            ctx.strokeStyle = D; ctx.lineWidth = 1;
+            ctx.strokeRect(tx + fx + 0.5, topY + fy + 0.5, fw - 1, fh - 1);
+        });
+        // Drooping frond tips
+        ctx.fillStyle = D;
+        [[tx - p(24), topY - p(2), p(6), p(4)],
+         [tx - p(26), topY + p(2), p(4), p(3)],
+         [tx + p(20), topY - p(2), p(6), p(4)],
+         [tx + p(22), topY + p(2), p(4), p(3)]].forEach(([x,y,w,h]) => {
+            ctx.fillRect(x,y,w,h);
+            ctx.strokeStyle = D; ctx.lineWidth=1; ctx.strokeRect(x+0.5,y+0.5,w-1,h-1);
+        });
+        // Coconut cluster
+        oRect(tx - p(3), topY + p(2), p(6), p(6), M);
+        oRect(tx - p(1), topY,        p(4), p(4), D);
+    }
+
+    // ════════════════════════════════════════
+    // OAK / ROUND TREE — pixel stacked canopy
+    // ════════════════════════════════════════
+    function drawOak(tx, gy, sz) {
+        const p = v => Math.round(v * sz);
+        // Trunk with roots
+        oRect(tx - p(4), gy - p(18), p(8), p(18), M);
+        ctx.fillStyle = D;
+        ctx.fillRect(tx - p(2), gy - p(17), p(2), p(16));
+        // Root flares
+        oRect(tx - p(8), gy - p(4), p(4), p(4), M);
+        oRect(tx + p(4), gy - p(4), p(4), p(4), M);
+
+        // Canopy — stacked hard-edged rows forming oval
+        const rows = [
+            [10, 8, -26],
+            [16, 9, -34],
+            [20,10, -43],
+            [22,10, -52],
+            [20,10, -61],
+            [16, 8, -68],
+            [10, 7, -74],
+            [ 6, 5, -78],
+        ];
+        rows.forEach(([w, h, dy]) => {
+            const rx = tx - p(w/2), ry = gy + p(dy);
+            ctx.fillStyle = D;
+            ctx.fillRect(rx, ry, p(w), p(h));
+            ctx.fillStyle = M;
+            ctx.fillRect(rx + 2, ry + 2, p(w) - 4, p(h) - 3);
+            ctx.fillStyle = L;
+            ctx.fillRect(rx + 3, ry + 1, p(w) - 6, 2);
+            ctx.strokeStyle = D; ctx.lineWidth = 1;
+            ctx.strokeRect(rx + 0.5, ry + 0.5, p(w) - 1, p(h) - 1);
+        });
+        // Highlight blobs
+        ctx.fillStyle = L;
+        ctx.fillRect(tx - p(8), gy - p(65), p(8), p(5));
+        ctx.fillRect(tx - p(4), gy - p(71), p(6), p(4));
+    }
+
+    // ════════════════════════════════════════
+    // BUSH — wide low shrub with hard outline
+    // ════════════════════════════════════════
+    function drawBush(tx, gy, sz) {
+        const p = v => Math.round(v * sz);
+        // Base layer
+        oRect(tx - p(18), gy - p(8),  p(36), p(8), M);
+        // Mid layer
+        oRect(tx - p(14), gy - p(15), p(28), p(8), D);
+        ctx.fillStyle = M;
+        ctx.fillRect(tx - p(12), gy - p(14), p(24), p(6));
+        ctx.strokeStyle = D; ctx.lineWidth = 1;
+        ctx.strokeRect(tx - p(14) + 0.5, gy - p(15) + 0.5, p(28) - 1, p(8) - 1);
+        // Top bumps — 3 rounded blobs via stacked rects
+        [[-p(8), -p(20), p(14), p(7)],
+         [p(0),  -p(22), p(12), p(8)],
+         [p(5),  -p(19), p(10), p(6)]].forEach(([fx,fy,fw,fh]) => {
+            ctx.fillStyle = D;
+            ctx.fillRect(tx + fx, gy + fy, fw, fh);
+            ctx.fillStyle = M;
+            ctx.fillRect(tx + fx + 1, gy + fy + 1, fw - 2, fh - 2);
+            ctx.strokeStyle = D; ctx.lineWidth = 1;
+            ctx.strokeRect(tx + fx + 0.5, gy + fy + 0.5, fw - 1, fh - 1);
+        });
+        // Light highlights
+        ctx.fillStyle = L;
+        ctx.fillRect(tx - p(6), gy - p(22), p(6), p(3));
+        ctx.fillRect(tx + p(2), gy - p(19), p(4), p(2));
+    }
+
+    // ════════════════════════════════════════
+    // ROLLING HILL — solid triangle, brick lines
+    // ════════════════════════════════════════
+    function drawHill(cx, gy, w, h) {
+        // Solid fill
+        ctx.fillStyle = M;
+        ctx.beginPath();
+        ctx.moveTo(cx - w/2, gy);
+        ctx.lineTo(cx, gy - h);
+        ctx.lineTo(cx + w/2, gy);
+        ctx.closePath(); ctx.fill();
+        // Left face lighter
+        ctx.fillStyle = L;
+        ctx.beginPath();
+        ctx.moveTo(cx - w/2 + 3, gy - 1);
+        ctx.lineTo(cx - 5,        gy - h + 8);
+        ctx.lineTo(cx - w/4,      gy - 1);
+        ctx.closePath(); ctx.fill();
+        // Hard outline
+        ctx.strokeStyle = D; ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(cx - w/2, gy); ctx.lineTo(cx, gy - h); ctx.lineTo(cx + w/2, gy);
+        ctx.closePath(); ctx.stroke();
+        // Horizontal row lines + vertical brick dividers
+        ctx.strokeStyle = D; ctx.lineWidth = 1;
+        const rows = Math.min(5, Math.floor(h / 10));
+        for (let r = 1; r <= rows; r++) {
+            const ry  = gy - Math.round(h * r / (rows + 1));
+            const rw  = Math.round(w * (1 - r / (rows + 1)));
+            const off = (r % 2) * 14;
+            ctx.beginPath(); ctx.moveTo(cx - rw/2, ry); ctx.lineTo(cx + rw/2, ry); ctx.stroke();
+            for (let bx = cx - rw/2 + off; bx < cx + rw/2; bx += 22) {
+                ctx.beginPath(); ctx.moveTo(bx, ry); ctx.lineTo(bx, ry + Math.round(h / (rows+1))); ctx.stroke();
+            }
+        }
+    }
+
+    // ════════════════════════════════════════
+    // CLOUD — hard outlined, 3-bump Mario style
+    // ════════════════════════════════════════
     function drawCloud(cx, cy, sz) {
-        // sz = 1.0 normal. All measures relative to sz.
-        const p = (v) => Math.round(v * sz);
-        ctx.fillStyle = GB.dark;
-        // Main body layers
-        ctx.fillRect(cx,        cy + p(10), p(64), p(12));
-        ctx.fillRect(cx + p(4), cy + p(6),  p(56), p(14));
-        ctx.fillRect(cx + p(8), cy + p(2),  p(48), p(12));
-        // Left bubble
-        ctx.fillRect(cx + p(2),  cy + p(4), p(18), p(16));
-        ctx.fillRect(cx + p(4),  cy,        p(14), p(10));
-        ctx.fillRect(cx + p(6),  cy - p(3), p(10), p(6));
-        // Centre bubble (tallest)
-        ctx.fillRect(cx + p(22), cy + p(2), p(20), p(18));
-        ctx.fillRect(cx + p(24), cy - p(4), p(16), p(10));
-        ctx.fillRect(cx + p(26), cy - p(9), p(12), p(8));
-        ctx.fillRect(cx + p(28), cy-p(13),  p(8),  p(6));
-        // Right bubble
-        ctx.fillRect(cx + p(42), cy + p(4), p(16), p(16));
-        ctx.fillRect(cx + p(44), cy,        p(12), p(10));
-        ctx.fillRect(cx + p(46), cy - p(4), p(8),  p(6));
-        // Highlights (lighter)
-        ctx.fillStyle = GB.mid;
-        ctx.fillRect(cx + p(6),  cy,        p(10), p(3));
-        ctx.fillRect(cx + p(25), cy - p(4), p(12), p(3));
-        ctx.fillRect(cx + p(45), cy,        p(8),  p(3));
-        ctx.fillRect(cx + p(10), cy + p(6), p(42), p(3));
-        // Dark underside shadow
-        ctx.fillStyle = GB.darkest;
-        ctx.fillRect(cx + p(4), cy + p(20), p(56), p(3));
-        ctx.fillRect(cx + p(8), cy + p(22), p(40), p(2));
+        const p = v => Math.round(v * sz);
+        // Fill all cloud shapes first
+        ctx.fillStyle = M;
+        ctx.fillRect(cx,          cy + p(12), p(60), p(12)); // base
+        ctx.fillRect(cx + p(4),   cy + p(5),  p(18), p(17)); // left bump
+        ctx.fillRect(cx + p(20),  cy,          p(22), p(24)); // centre bump (tallest)
+        ctx.fillRect(cx + p(40),  cy + p(4),   p(16), p(18)); // right bump
+        // Inner lighter zones
+        ctx.fillStyle = L;
+        ctx.fillRect(cx + p(6),   cy + p(6),  p(14), p(8));
+        ctx.fillRect(cx + p(22),  cy + p(2),  p(18), p(10));
+        ctx.fillRect(cx + p(42),  cy + p(5),  p(12), p(8));
+        ctx.fillRect(cx + p(6),   cy + p(14), p(46), p(5));
+        // Dark underside
+        ctx.fillStyle = D;
+        ctx.fillRect(cx + p(4),   cy + p(22), p(52), p(3));
+        // Hard outer outline — traced polygon path
+        ctx.strokeStyle = D; ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx,           cy + p(24));
+        ctx.lineTo(cx + p(60),   cy + p(24));
+        ctx.lineTo(cx + p(60),   cy + p(12));
+        ctx.lineTo(cx + p(56),   cy + p(12));
+        ctx.lineTo(cx + p(56),   cy + p(5));
+        ctx.lineTo(cx + p(40),   cy + p(5));
+        ctx.lineTo(cx + p(40),   cy + p(4));
+        ctx.lineTo(cx + p(42),   cy + p(4));
+        ctx.lineTo(cx + p(42),   cy);
+        ctx.lineTo(cx + p(20),   cy);
+        ctx.lineTo(cx + p(20),   cy + p(5));
+        ctx.lineTo(cx + p(22),   cy + p(5));
+        ctx.lineTo(cx + p(22),   cy + p(5));
+        ctx.lineTo(cx + p(4),    cy + p(5));
+        ctx.lineTo(cx + p(4),    cy + p(12));
+        ctx.lineTo(cx,           cy + p(12));
+        ctx.closePath();
+        ctx.stroke();
     }
 
+    // ════════════════════════════════════════
+    // PLACE CLOUDS IN SHELF GAPS
+    // ════════════════════════════════════════
     for (let i = 0; i < 5; i++) {
         const s      = shelfData[i];
-        const gapTop = i === 0 ? HUD_H + 2 : shelfData[i-1].y + SHELF_H + 2;
+        const gapTop = i === 0 ? HUD_H + 4 : shelfData[i-1].y + SHELF_H + 4;
         const gapH   = s.y - gapTop - 4;
-        if (gapH < 28) continue;
-        const sz  = 0.6 + rng(i * 50 + 3) * 0.5;
-        const cw2 = Math.round(64 * sz);
-        const maxX = CW - cw2 - 10;
-        const cx   = Math.round(10 + rng(i * 50 + 1) * Math.max(1, maxX - 10));
-        const cy   = Math.round(gapTop + 4 + rng(i * 50 + 2) * Math.max(1, gapH - Math.round(28 * sz)));
+        if (gapH < 26) continue;
+        const sz  = 0.5 + rng(i * 50 + 3) * 0.45;
+        const cw2 = Math.round(60 * sz);
+        const cx  = Math.round(6 + rng(i * 50 + 1) * (CW - cw2 - 12));
+        const maxCY = Math.max(1, gapH - Math.round(26 * sz));
+        const cy  = Math.round(gapTop + 2 + rng(i * 50 + 2) * maxCY);
         ctx.globalAlpha = A;
         drawCloud(cx, cy, sz);
         ctx.globalAlpha = 1;
     }
 
-    // ════════════════════════════════════════════════
-    // PINE TREES — detailed 5-tier, on shelf surface
-    // ════════════════════════════════════════════════
-    function drawPine(tx, groundY, sz) {
-        const p = (v) => Math.round(v * sz);
-        // Trunk
-        ctx.fillStyle = GB.dark;
-        ctx.fillRect(tx - p(3), groundY - p(10), p(6), p(10));
-        ctx.fillStyle = GB.darkest;
-        ctx.fillRect(tx - p(2), groundY - p(10), p(1), p(8)); // shadow side
-        // 5 foliage tiers bottom→top, widening taper
-        const tiers = [[22,10],[18,10],[14,10],[10,9],[6,8]];
-        tiers.forEach(([w, h], ti) => {
-            const ty = groundY - p(10) - p(ti * 11 + 2);
-            ctx.fillStyle = GB.darkest;
-            ctx.fillRect(tx - p(w), ty, p(w*2), p(h));
-            // Inner lighter strip
-            ctx.fillStyle = GB.dark;
-            ctx.fillRect(tx - p(w - 3), ty + p(2), p((w-3)*2), p(3));
-            // Top edge highlight
-            ctx.fillStyle = GB.mid;
-            ctx.fillRect(tx - p(w - 4), ty, p((w-4)*2), p(2));
-            // Notch in bottom of each tier (pixel detail)
-            ctx.fillStyle = GB.lightest;
-            ctx.fillRect(tx - p(2), ty + p(h - 2), p(4), p(2));
-        });
-        // Tip pixel
-        ctx.fillStyle = GB.darkest;
-        ctx.fillRect(tx - p(2), groundY - p(10) - p(57), p(4), p(6));
-        ctx.fillRect(tx - p(1), groundY - p(10) - p(60), p(2), p(4));
-    }
-
-    // ════════════════════════════════════════════════
-    // OAK / ROUND TREES — detailed canopy
-    // ════════════════════════════════════════════════
-    function drawOak(tx, groundY, sz) {
-        const p = (v) => Math.round(v * sz);
-        // Roots/base
-        ctx.fillStyle = GB.dark;
-        ctx.fillRect(tx - p(5), groundY - p(2),  p(10), p(2));
-        ctx.fillRect(tx - p(7), groundY - p(1),  p(4),  p(1));
-        ctx.fillRect(tx + p(3), groundY - p(1),  p(4),  p(1));
-        // Trunk
-        ctx.fillRect(tx - p(4), groundY - p(16), p(8), p(14));
-        ctx.fillStyle = GB.darkest;
-        ctx.fillRect(tx - p(3), groundY - p(16), p(2), p(12)); // shadow
-        // Branch forks
-        ctx.fillStyle = GB.dark;
-        ctx.fillRect(tx - p(10), groundY - p(20), p(6), p(4));
-        ctx.fillRect(tx + p(4),  groundY - p(22), p(6), p(4));
-        // Canopy base — wide oval built from pixel rects
-        const layers = [
-            [20, 6,  10, -28],
-            [26, 8,   7, -34],
-            [28, 10,  5, -42],
-            [26, 8,   4, -50],
-            [20, 6,   5, -56],
-            [14, 5,   6, -60],
-            [8,  4,   7, -63],
-        ];
-        layers.forEach(([w, h, lx, ly]) => {
-            ctx.fillStyle = GB.darkest;
-            ctx.fillRect(tx - p(w/2), groundY + p(ly), p(w), p(h));
-            // Lighter interior band
-            ctx.fillStyle = GB.dark;
-            ctx.fillRect(tx - p(w/2 - 3), groundY + p(ly) + p(2), p(w - 6), p(2));
-        });
-        // Highlight blobs on left-top canopy
-        ctx.fillStyle = GB.mid;
-        ctx.fillRect(tx - p(10), groundY - p(50), p(8), p(4));
-        ctx.fillRect(tx - p(6),  groundY - p(56), p(6), p(3));
-        ctx.fillRect(tx + p(2),  groundY - p(46), p(6), p(3));
-        // Fruit/berry dots (dark specks)
-        ctx.fillStyle = GB.darkest;
-        ctx.fillRect(tx - p(8),  groundY - p(38), p(3), p(3));
-        ctx.fillRect(tx + p(4),  groundY - p(44), p(3), p(3));
-        ctx.fillRect(tx - p(2),  groundY - p(54), p(3), p(3));
-    }
-
-    // ════════════════════════════════════════════════
-    // BUSH — small detailed shrub
-    // ════════════════════════════════════════════════
-    function drawBush(tx, groundY, sz) {
-        const p = (v) => Math.round(v * sz);
-        ctx.fillStyle = GB.dark;
-        ctx.fillRect(tx - p(2), groundY - p(4),  p(4), p(4));  // stem
-        const layers = [[14,5,-8],[18,6,-12],[16,6,-17],[12,5,-21],[8,4,-24]];
-        layers.forEach(([w, h, ly]) => {
-            ctx.fillStyle = GB.darkest;
-            ctx.fillRect(tx - p(w/2), groundY + p(ly), p(w), p(h));
-            ctx.fillStyle = GB.dark;
-            ctx.fillRect(tx - p(w/2-2), groundY + p(ly) + p(1), p(w-4), p(2));
-        });
-        // Highlight
-        ctx.fillStyle = GB.mid;
-        ctx.fillRect(tx - p(5), groundY - p(22), p(6), p(2));
-        ctx.fillRect(tx + p(1), groundY - p(19), p(4), p(2));
-    }
-
-    // ════════════════════════════════════════════════
-    // PLACE TREES ON EACH SHELF
-    // ════════════════════════════════════════════════
+    // ════════════════════════════════════════
+    // PLACE SCENERY ON EACH SHELF
+    // ════════════════════════════════════════
     for (let i = 0; i < 5; i++) {
-        const s       = shelfData[i];
-        const groundY = s.y;
-        const numT    = 2 + Math.round(rng(i * 30 + 10) * 2); // 2-4 per shelf
+        const s  = shelfData[i];
+        const gy = s.y;
 
-        for (let t = 0; t < numT; t++) {
+        const featureCount = 3 + Math.round(rng(i * 100) * 2);
+        let placed = [];
+
+        for (let f = 0; f < featureCount + 10; f++) {
+            if (placed.length >= featureCount) break;
+            // 0=pine, 1=palm, 2=oak, 3=bush, 4=hill
+            const kind  = Math.floor(rng(i * 100 + f * 13 + 1) * 5);
+            const halfW = kind === 4 ? 55 : kind === 3 ? 22 : 20;
+
             let tx = -1;
-            for (let attempt = 0; attempt < 20; attempt++) {
-                const cand = Math.round(16 + rng(i * 30 + t * 9 + attempt + 20) * (CW - 32));
-                if (clearOfHole(i, cand, HC + 24)) { tx = cand; break; }
+            for (let att = 0; att < 20; att++) {
+                const cand = Math.round(halfW + 6 + rng(i * 100 + f * 13 + att + 50) * (CW - halfW * 2 - 12));
+                const tooClose = placed.some(q => Math.abs(q.x - cand) < halfW + q.hw + 10);
+                if (!tooClose && clearOfHole(i, cand, halfW)) { tx = cand; break; }
             }
             if (tx < 0) continue;
 
-            const kind = Math.floor(rng(i * 30 + t * 9 + 5) * 3); // 0=pine, 1=oak, 2=bush
-            const sz   = 0.55 + rng(i * 30 + t * 9 + 6) * 0.55;
-
+            const sz = 0.65 + rng(i * 100 + f * 13 + 7) * 0.55;
             ctx.globalAlpha = A;
-            if (kind === 0)      drawPine(tx, groundY, sz);
-            else if (kind === 1) drawOak(tx, groundY, sz);
-            else                 drawBush(tx, groundY, sz);
-            ctx.globalAlpha = 1;
-        }
-    }
 
-    // ════════════════════════════════════════════════
-    // DISTANT ROLLING HILLS — silhouette behind each gap
-    // ════════════════════════════════════════════════
-    for (let i = 0; i < 5; i++) {
-        const s      = shelfData[i];
-        const baseY  = s.y - 2;
-        // 1-2 overlapping hill shapes
-        const numH = 1 + Math.round(rng(i * 40 + 80));
-        for (let h = 0; h < numH; h++) {
-            const hx  = Math.round(20 + rng(i*40 + h*13 + 81) * (CW - 100));
-            const hw2 = 45 + Math.round(rng(i*40 + h*13 + 82) * 55);
-            const hh  = 10 + Math.round(rng(i*40 + h*13 + 83) * 12);
-            ctx.globalAlpha = A * 0.5;
-            ctx.fillStyle = GB.mid;
-            ctx.beginPath();
-            ctx.ellipse(hx, baseY, hw2, hh, 0, Math.PI, 0);
-            ctx.fill();
-            // Highlight strip on hill top
-            ctx.globalAlpha = A * 0.4;
-            ctx.fillStyle = GB.lightest;
-            ctx.beginPath();
-            ctx.ellipse(hx, baseY - hh * 0.55, hw2 * 0.6, hh * 0.3, 0, Math.PI, 0);
-            ctx.fill();
+            if      (kind === 0) drawPine(tx, gy, sz);
+            else if (kind === 1) drawPalm(tx, gy, sz);
+            else if (kind === 2) drawOak(tx, gy, sz);
+            else if (kind === 3) drawBush(tx, gy, sz);
+            else {
+                const hw2 = 38 + Math.round(rng(i*100 + f*13 + 8) * 52);
+                const hh  = 22 + Math.round(rng(i*100 + f*13 + 9) * 32);
+                drawHill(tx, gy, hw2 * 2, hh);
+            }
+            ctx.globalAlpha = 1;
+            placed.push({ x: tx, hw: halfW });
         }
-        ctx.globalAlpha = 1;
     }
 }
 
