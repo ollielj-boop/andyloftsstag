@@ -58,9 +58,9 @@
             position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
             background: #0f380f; color: #9bbc0f; border: 3px solid #9bbc0f;
             font-family: 'Press Start 2P', monospace; font-size: 13px;
-            padding: 9px 24px; cursor: pointer; letter-spacing: 2px;
+            padding: 9px 0; cursor: pointer; letter-spacing: 2px;
             box-shadow: 3px 3px 0 #306230, 0 0 10px rgba(155,188,15,0.5);
-            z-index: 10; display: none;
+            z-index: 10; display: none; width: 240px; text-align: center;
             user-select: none; -webkit-tap-highlight-color: transparent;
             touch-action: manipulation; white-space: nowrap;
         }
@@ -167,32 +167,44 @@ let nameEntryChars = [];
 let cachedLB = [];       // cached leaderboard from last fetch
 let lbLoading = false;   // true while fetching
 
+// JSONBin needs Master Key for PUT, Access Key for GET
+const JSONBIN_MASTER = '$2a$10$j9Je6LWLgZ8bLj9taSfN9.aFpkEdkROTaYo1Xda98/f32ff4fw8rq';
+
 async function fetchLeaderboard() {
     lbLoading = true;
     try {
         const res = await fetch(JSONBIN_URL + '/latest', {
-            headers: { 'X-Access-Key': JSONBIN_KEY }
+            headers: {
+                'X-Master-Key': JSONBIN_MASTER,
+                'X-Access-Key': JSONBIN_KEY
+            }
         });
+        if (!res.ok) throw new Error('fetch failed ' + res.status);
         const data = await res.json();
-        cachedLB = (data.record && data.record.scores) ? data.record.scores : [];
+        cachedLB = Array.isArray(data.record?.scores) ? data.record.scores : [];
     } catch(e) {
-        cachedLB = [];
+        console.warn('LB fetch error:', e);
+        cachedLB = cachedLB || [];
     }
     lbLoading = false;
 }
 
 async function saveLeaderboard(lb) {
     try {
-        await fetch(JSONBIN_URL, {
+        const res = await fetch(JSONBIN_URL, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
+                'X-Master-Key': JSONBIN_MASTER,
                 'X-Access-Key': JSONBIN_KEY
             },
             body: JSON.stringify({ scores: lb })
         });
+        if (!res.ok) throw new Error('save failed ' + res.status);
         cachedLB = lb;
-    } catch(e) {}
+    } catch(e) {
+        console.warn('LB save error:', e);
+    }
 }
 
 function getLeaderboard() {
@@ -583,6 +595,7 @@ function loop() {
 function draw() {
     ctx.fillStyle = GB.lightest;
     ctx.fillRect(0, 0, CW, CH);
+    if (extraMode) drawBackground();
     drawGrassBar();
     drawShelves();
     drawBall();
@@ -618,10 +631,21 @@ function drawShelves() {
         // Right shelf block
         ctx.fillRect(hr, s.y, CW - hr, SHELF_H);
 
-        // Top highlight on solid parts
+        // Top highlight on solid parts — skip terrain zone to avoid line showing through
         ctx.fillStyle = GB.dark;
-        ctx.fillRect(0, s.y, hl, 2);
-        ctx.fillRect(hr, s.y, CW - hr, 2);
+        const terrLeft  = s.terrain ? s.terrain.startX : CW;
+        const terrRight = s.terrain ? s.terrain.endX   : 0;
+        // Left segment: from 0 to min(hl, terrLeft)
+        if (terrLeft > 0)  ctx.fillRect(0, s.y, Math.min(hl, terrLeft), 2);
+        // Right segment: from max(hr, terrRight) to CW
+        if (terrRight < CW) ctx.fillRect(Math.max(hr, terrRight), s.y, CW - Math.max(hr, terrRight), 2);
+        // Middle segment between hole and terrain (if any)
+        if (s.terrain) {
+            // left of terrain, right of hole
+            if (terrLeft > hr)  ctx.fillRect(hr, s.y, terrLeft - hr, 2);
+            // right of terrain, left of hole
+            if (terrRight < hl) ctx.fillRect(terrRight, s.y, hl - terrRight, 2);
+        }
 
         // Hole: same as background colour
         ctx.fillStyle = GB.lightest;
@@ -886,6 +910,73 @@ function drawAndyPutter(swing) {
     ctx.fillStyle = D;
     ctx.fillRect(-4,-41,8,2); ctx.fillRect(-5,-42,2,1); ctx.fillRect(3,-42,2,1);
     ctx.fillStyle = GB.dark; ctx.fillRect(-7,-43,14,1);
+}
+
+// ── Background scenery (from hole 6 onward) ──
+// Seeded by level number so it's stable per level, very faint GB style
+function drawBackground() {
+    const seed = (level + 1) * 7 + (extraMode ? 100 : 0);
+    function rng(n) {
+        // simple deterministic pseudo-random from seed+n
+        const x = Math.sin(seed * 9301 + n * 49297 + 233) * 4093;
+        return x - Math.floor(x);
+    }
+
+    const alpha = 0.13; // very faint
+
+    // ── Clouds (3 per screen) ──
+    for (let c = 0; c < 3; c++) {
+        const cx = Math.round(rng(c * 10) * (CW - 80)) + 40;
+        const cy = Math.round(HUD_H + rng(c * 10 + 1) * (GAME_H * 0.35)) + 10;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = GB.dark;
+        // Chunky pixel cloud
+        ctx.fillRect(cx,      cy + 4,  40, 8);   // body
+        ctx.fillRect(cx + 6,  cy,      28, 14);  // top bulge
+        ctx.fillRect(cx + 10, cy - 4,  18, 8);   // top peak
+        ctx.fillRect(cx + 4,  cy + 2,  8,  4);   // left lobe
+        ctx.fillRect(cx + 28, cy + 2,  8,  4);   // right lobe
+        ctx.globalAlpha = 1;
+    }
+
+    // ── Trees (4-5 per screen, scattered across height) ──
+    const numTrees = 4 + Math.round(rng(99) * 1);
+    for (let t = 0; t < numTrees; t++) {
+        const tx = Math.round(rng(t * 20 + 5) * (CW - 40)) + 20;
+        const ty = Math.round(HUD_H + rng(t * 20 + 6) * (GAME_H - 60)) + 20;
+        const tall = rng(t * 20 + 7) > 0.5;
+        ctx.globalAlpha = alpha;
+        ctx.fillStyle = GB.dark;
+        if (tall) {
+            // Pine/tall tree
+            const trunkH = 14 + Math.round(rng(t*20+8)*8);
+            ctx.fillRect(tx - 2, ty,         4, trunkH);  // trunk
+            ctx.fillRect(tx - 8, ty - 14,    16, 10);     // bottom foliage
+            ctx.fillRect(tx - 6, ty - 22,    12, 10);     // mid foliage
+            ctx.fillRect(tx - 4, ty - 28,    8,  8);      // top foliage
+            ctx.fillRect(tx - 2, ty - 33,    4,  6);      // tip
+        } else {
+            // Round bush/tree
+            ctx.fillRect(tx - 2, ty,         4, 10);      // trunk
+            ctx.fillRect(tx - 10, ty - 12,   20, 12);     // canopy base
+            ctx.fillRect(tx - 7,  ty - 20,   14, 10);     // canopy mid
+            ctx.fillRect(tx - 4,  ty - 26,   8,  8);      // canopy top
+        }
+        ctx.globalAlpha = 1;
+    }
+
+    // ── Distant hills (2 gentle humps near top of play area) ──
+    ctx.globalAlpha = alpha * 0.7;
+    ctx.fillStyle = GB.mid;
+    for (let h = 0; h < 2; h++) {
+        const hx = Math.round(rng(h * 30 + 50) * (CW - 120)) + 60;
+        const hy = Math.round(HUD_H + rng(h * 30 + 51) * (GAME_H * 0.4)) + 10;
+        const hw2 = 50 + Math.round(rng(h * 30 + 52) * 30);
+        ctx.beginPath();
+        ctx.ellipse(hx, hy + 10, hw2, 12, 0, Math.PI, 0);
+        ctx.fill();
+    }
+    ctx.globalAlpha = 1;
 }
 
 function drawGrassBar() {
