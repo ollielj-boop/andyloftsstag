@@ -862,10 +862,6 @@ function drawTerrain(s) {
         }
 
         // ── Re-draw the hole opening on top of the hill ──
-        // The hole is at the peak — find the Y at the peak
-        const hl = s.holeLeft;
-        const hr = s.holeRight;
-        const hw = hr - hl;
         // Peak Y offset (centre of hill = lowest point of surface = peak of hill)
         const peakPx   = terrain.peakX - startX;
         const peakYOff = curveY(peakPx);  // this is negative (hill goes up)
