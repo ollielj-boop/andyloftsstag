@@ -833,19 +833,60 @@ function drawTerrain(s) {
     }
 
     if (type === 'hillshelf') {
-        // Draw hill spanning hole — same style as regular hill but centred on hole
+        // Draw the hill body
         ctx.beginPath();
         ctx.moveTo(startX, baseY);
         for (let px = 0; px <= TW; px++) ctx.lineTo(startX + px, baseY + curveY(px));
         ctx.lineTo(endX, baseY);
         ctx.closePath();
         ctx.fillStyle = GB.darkest; ctx.fill();
+
+        // Surface highlight line
         ctx.beginPath();
         ctx.moveTo(startX, baseY);
         for (let px = 0; px <= TW; px++) ctx.lineTo(startX + px, baseY + curveY(px));
         ctx.strokeStyle = GB.dark; ctx.lineWidth = 2; ctx.stroke();
+
+        // Texture dashes
         ctx.fillStyle = GB.dark;
         for (let px = 4; px < TW - 4; px += 8) ctx.fillRect(startX + px, baseY + curveY(px) - 1, 3, 1);
+
+        // ── Re-draw the hole opening on top of the hill ──
+        // The hole is at the peak — find the Y at the peak
+        const hl = s.holeLeft;
+        const hr = s.holeRight;
+        const hw = hr - hl;
+        // Peak Y offset (centre of hill = lowest point of surface = peak of hill)
+        const peakPx   = terrain.peakX - startX;
+        const peakYOff = curveY(peakPx);  // this is negative (hill goes up)
+
+        // Cut the hole open: fill with background colour across the hole width at every y from peakYOff to baseY
+        // We need to cut a vertical slot through the hill at the hole position
+        for (let px = 0; px <= hw; px++) {
+            const hx   = hl + px;
+            const relX = hx - startX;
+            const yTop = baseY + curveY(relX);  // top surface of hill at this x
+            ctx.fillStyle = GB.lightest;
+            ctx.fillRect(hx, yTop, 1, baseY - yTop + 1);
+        }
+
+        // Hole edge walls (same bright green as regular holes)
+        ctx.fillStyle = GB.mid;
+        // Find surface Y at hole edges
+        const leftEdgeY  = baseY + curveY(hl - startX);
+        const rightEdgeY = baseY + curveY(hr - startX);
+        ctx.fillRect(hl - 2, leftEdgeY,  2, baseY - leftEdgeY + SHELF_H);
+        ctx.fillRect(hr,     rightEdgeY, 2, baseY - rightEdgeY + SHELF_H);
+
+        // Dark lip along the top of the hole opening (follows hill curve)
+        ctx.fillStyle = GB.dark;
+        for (let px = 0; px <= hw; px++) {
+            const hx   = hl + px;
+            const relX = hx - startX;
+            const yTop = baseY + curveY(relX);
+            ctx.fillRect(hx, yTop, 1, 2);
+        }
+
         return;
     }
 
