@@ -333,7 +333,7 @@ const gameData = {
     "options": [
       {
         "text": "Remain silent and wait to be taken to the station",
-        "lead": "Website Home Page"
+        "lead": "Golf Game page"
       },
       {
         "text": "Tell them you're due to play golf at 16:30 - ask if they can give you a lift",
@@ -347,7 +347,7 @@ const gameData = {
     "options": [
       {
         "text": "Remain silent and wait to be taken to the station",
-        "lead": "Website Home Page"
+        "lead": "Golf Game page"
       },
       {
         "text": "Ask if you can go and apologise to Matt",
@@ -361,7 +361,7 @@ const gameData = {
     "options": [
       {
         "text": "Say sorry",
-        "lead": "Website Home Page"
+        "lead": "Golf Game page"
       },
       {
         "text": "Strike him again",
@@ -375,7 +375,7 @@ const gameData = {
     "options": [
       {
         "text": "Remain silent and wait to be taken to the station",
-        "lead": "Website Home Page"
+        "lead": "Golf Game page"
       }
     ]
   },

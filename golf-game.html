@@ -65,6 +65,7 @@
             touch-action: manipulation; white-space: nowrap;
         }
         #puttBtn:active { transform: translateX(-50%) translate(2px,2px); box-shadow: 1px 1px 0 #306230; }
+        #instrCanvas { width: 100%; height: 100%; display: block; image-rendering: pixelated; cursor: pointer; }
 
         /* scanlines */
         #shell::after {
@@ -79,7 +80,10 @@
 <div id="shell">
     <div id="homeScreen" class="screen active">
         <img src="images/putting.jpeg" alt="Andy's Putting Challenge">
-        <button id="playBtn" onclick="startGame()">▶ PLAY</button>
+        <button id="playBtn" onclick="showInstructions()">▶ PLAY</button>
+    </div>
+    <div id="instructionScreen" class="screen">
+        <canvas id="instrCanvas" width="360" height="640"></canvas>
     </div>
     <div id="gameScreen" class="screen">
         <canvas id="gameCanvas"></canvas>
@@ -117,6 +121,117 @@ function scaleShell() {
 scaleShell();
 window.addEventListener('resize', scaleShell);
 
+function showInstructions() {
+    document.getElementById('homeScreen').classList.remove('active');
+    const instrScreen = document.getElementById('instructionScreen');
+    instrScreen.classList.add('active');
+    drawInstructionScreen();
+    // Click or keypress anywhere advances to game
+    function advance() {
+        instrScreen.removeEventListener('click', advance);
+        document.removeEventListener('keydown', advanceKey);
+        instrScreen.classList.remove('active');
+        startGame();
+    }
+    function advanceKey(e) {
+        if (e.code === 'Space' || e.code === 'Enter') { advance(); }
+    }
+    instrScreen.addEventListener('click', advance);
+    document.addEventListener('keydown', advanceKey);
+}
+
+function drawInstructionScreen() {
+    const c = document.getElementById('instrCanvas');
+    const x = c.getContext('2d');
+    const W = 360, H = 640;
+    // Background
+    x.fillStyle = GB.darkest;
+    x.fillRect(0, 0, W, H);
+    // Title box
+    x.fillStyle = GB.dark;
+    x.fillRect(20, 40, 320, 56);
+    x.strokeStyle = GB.mid; x.lineWidth = 3;
+    x.strokeRect(20, 40, 320, 56);
+    x.fillStyle = GB.lightest;
+    x.font = '14px "Press Start 2P"';
+    x.textAlign = 'center';
+    x.fillText("HOW TO PLAY", W/2, 76);
+
+    // Instruction box
+    x.fillStyle = GB.darkest;
+    x.fillRect(20, 130, 320, 280);
+    x.strokeStyle = GB.dark; x.lineWidth = 2;
+    x.strokeRect(20, 130, 320, 280);
+
+    // Arrow icon
+    x.fillStyle = GB.mid;
+    x.beginPath();
+    x.moveTo(W/2, 168); x.lineTo(W/2 - 14, 148); x.lineTo(W/2 + 14, 148);
+    x.closePath(); x.fill();
+    x.strokeStyle = GB.light; x.lineWidth = 1; x.stroke();
+
+    x.fillStyle = GB.light;
+    x.font = '7px "Press Start 2P"';
+    x.fillText('AN ARROW SWEEPS', W/2, 190);
+    x.fillText('BACK AND FORTH', W/2, 204);
+
+    // Divider
+    x.strokeStyle = GB.dark; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(40, 218); x.lineTo(320, 218); x.stroke();
+
+    // Hole icon
+    x.fillStyle = GB.lightest;
+    x.fillRect(W/2 - 20, 228, 40, 12);
+    x.fillStyle = GB.mid;
+    x.fillRect(W/2 - 18, 226, 36, 3);
+    x.fillStyle = GB.dark;
+    x.fillRect(W/2 - 20, 228, 2, 12);
+    x.fillRect(W/2 + 18, 228, 2, 12);
+    x.fillStyle = GB.light;
+    x.font = '7px "Press Start 2P"';
+    x.fillText('STOP THE ARROW', W/2, 256);
+    x.fillText('OVER THE HOLE', W/2, 270);
+
+    // Divider
+    x.beginPath(); x.moveTo(40, 284); x.lineTo(320, 284); x.stroke();
+
+    // Putt icon — little ball
+    x.fillStyle = GB.lightest;
+    x.beginPath(); x.arc(W/2, 300, 8, 0, Math.PI*2); x.fill();
+    x.strokeStyle = GB.darkest; x.lineWidth = 2; x.stroke();
+    x.fillStyle = GB.light;
+    x.font = '7px "Press Start 2P"';
+    x.fillText('CLICK PUTT / SPACE', W/2, 326);
+    x.fillText('BAR TO PUTT', W/2, 340);
+
+    // Divider
+    x.strokeStyle = GB.dark; x.lineWidth = 1;
+    x.beginPath(); x.moveTo(40, 354); x.lineTo(320, 354); x.stroke();
+
+    // Goal text
+    x.fillStyle = GB.mid;
+    x.font = '7px "Press Start 2P"';
+    x.fillText('PUTT THE BALL INTO', W/2, 376);
+    x.fillText('THE HOLE TO ADVANCE', W/2, 390);
+    x.fillText('TO THE NEXT LEVEL!', W/2, 404);
+
+    // Tap to continue — blinking handled by redraw isn't needed, just show static
+    x.fillStyle = GB.lightest;
+    x.font = '8px "Press Start 2P"';
+    x.fillText('TAP / CLICK TO START', W/2, 480);
+    // Blinking dots
+    x.fillStyle = GB.mid;
+    x.fillRect(W/2 - 12, 496, 6, 6);
+    x.fillRect(W/2 - 3,  496, 6, 6);
+    x.fillRect(W/2 + 6,  496, 6, 6);
+
+    // Border
+    x.strokeStyle = GB.mid; x.lineWidth = 4;
+    x.strokeRect(4, 4, W - 8, H - 8);
+    x.strokeStyle = GB.dark; x.lineWidth = 2;
+    x.strokeRect(10, 10, W - 20, H - 20);
+}
+
 // ── Palette
 const GB = {
     darkest: '#0f380f', dark: '#306230',
@@ -150,6 +265,7 @@ let ballVY      = 0;
 let swingTimer  = 0;
 let putterSwing = 0;
 let flashTimer  = 0;
+let missArrowX  = -1;
 let totalHoles  = 0;
 let extraMode   = false;
 
@@ -270,7 +386,21 @@ function startGame() {
     document.getElementById('puttBtn').addEventListener('click', handlePuttBtn);
     document.getElementById('puttBtn').addEventListener('touchend', e => { e.preventDefault(); handlePuttBtn(); });
     canvas.addEventListener('click',    e => handleCanvasTap(tapCoords(e, 'click')));
-    canvas.addEventListener('touchend', e => { e.preventDefault(); handleCanvasTap(tapCoords(e, 'touch')); });
+    canvas.addEventListener('touchend', e => {
+        e.preventDefault();
+        const p = tapCoords(e, 'touch');
+        // On mobile (touch device), tapping the game area (below HUD) putts the ball
+        if (p.y > HUD_H && state !== 'nameEntry' && state !== 'saving') {
+            // But still handle overlay button taps normally
+            if (state === 'gameover') {
+                if (inRect(p, btnRects.retry))  { doRetry(); return; }
+                if (inRect(p, btnRects.goHome)) { window.location.href = 'index.html'; return; }
+            }
+            handlePuttBtn();
+            return;
+        }
+        handleCanvasTap(p);
+    });
 
     // Name entry overlay
     const nameInput = document.getElementById('nameInput');
@@ -437,6 +567,8 @@ function initLevel(lv, keepTotal) {
     putterSwing = 0;
     swingTimer  = 0;
     flashTimer  = 0;
+    missArrowX  = -1;
+    missArrowX  = -1;
     ballVX = 0;
     ballVY = 0;
     if (!keepTotal) { totalHoles = 0; extraMode = false; }
@@ -456,10 +588,12 @@ function onPutt() {
     state = 'rolling';
     if (inHole) {
         ballVX = s.side === 'left' ? PUTT_SPEED : -PUTT_SPEED;
+        missArrowX = -1;  // clear on success
     } else {
         ballVX = s.side === 'left' ? PUTT_SPEED * 0.5 : -PUTT_SPEED * 0.5;
         state = 'miss';
         flashTimer = 80;
+        missArrowX = arrowX;  // remember where arrow stopped
     }
 }
 
@@ -794,22 +928,38 @@ function drawBall() {
 }
 
 function drawArrow() {
-    if (state !== 'idle') return;
     const s  = shelves[level];
-    const ay = s.y - 14;
-    const ax = Math.round(arrowX);
     const aw = 10, ah = 12;
-    // Downward-pointing triangle
-    ctx.fillStyle = GB.darkest;
-    ctx.beginPath();
-    ctx.moveTo(ax, ay);
-    ctx.lineTo(ax - aw, ay - ah);
-    ctx.lineTo(ax + aw, ay - ah);
-    ctx.closePath(); ctx.fill();
-    ctx.strokeStyle = GB.mid; ctx.lineWidth = 1; ctx.stroke();
-    // Hole zone highlight
-    ctx.fillStyle = 'rgba(139,172,15,0.18)';
-    ctx.fillRect(s.holeLeft, s.y - 20, s.holeRight - s.holeLeft, 20);
+
+    // Hole zone highlight (always shown during idle)
+    if (state === 'idle') {
+        ctx.fillStyle = 'rgba(139,172,15,0.18)';
+        ctx.fillRect(s.holeLeft, s.y - 20, s.holeRight - s.holeLeft, 20);
+    }
+
+    // Moving arrow (idle only)
+    if (state === 'idle') {
+        const ax = Math.round(arrowX);
+        const ay = s.y - 14;
+        ctx.fillStyle = GB.darkest;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay); ctx.lineTo(ax - aw, ay - ah); ctx.lineTo(ax + aw, ay - ah);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = GB.mid; ctx.lineWidth = 1; ctx.stroke();
+    }
+
+    // Miss arrow — stays visible where player stopped it, shown dimmed
+    if ((state === 'miss' || state === 'rolling' || state === 'falling') && missArrowX >= 0) {
+        const ax = Math.round(missArrowX);
+        const ay = s.y - 14;
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = GB.dark;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay); ctx.lineTo(ax - aw, ay - ah); ctx.lineTo(ax + aw, ay - ah);
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = GB.mid; ctx.lineWidth = 1; ctx.stroke();
+        ctx.globalAlpha = 1;
+    }
 }
 
 function drawPutter() {
