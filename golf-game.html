@@ -764,34 +764,25 @@ function drawShelves() {
         // Right shelf block
         ctx.fillRect(hr, s.y, CW - hr, SHELF_H);
 
-        // Top highlight on solid parts — skip terrain zone to avoid line showing through
+        // Top highlight on solid shelf parts only (never over hole or terrain)
         ctx.fillStyle = GB.dark;
         const terrLeft  = s.terrain ? s.terrain.startX : CW;
         const terrRight = s.terrain ? s.terrain.endX   : 0;
-        // Left segment: from 0 to min(hl, terrLeft)
-        if (terrLeft > 0)  ctx.fillRect(0, s.y, Math.min(hl, terrLeft), 2);
-        // Right segment: from max(hr, terrRight) to CW
-        if (terrRight < CW) ctx.fillRect(Math.max(hr, terrRight), s.y, CW - Math.max(hr, terrRight), 2);
-        // Middle segment between hole and terrain (if any)
-        if (s.terrain) {
-            // left of terrain, right of hole
-            if (terrLeft > hr)  ctx.fillRect(hr, s.y, terrLeft - hr, 2);
-            // right of terrain, left of hole
-            if (terrRight < hl) ctx.fillRect(terrRight, s.y, hl - terrRight, 2);
+        // Solid zones: [0..hl] and [hr..CW], each clipped to avoid terrain
+        // Left solid zone: 0 to hl, but not where terrain overlaps
+        const leftSolidEnd = Math.min(hl, terrLeft);
+        if (leftSolidEnd > 0) ctx.fillRect(0, s.y, leftSolidEnd, 2);
+        // Right solid zone: hr to CW, but not where terrain overlaps
+        const rightSolidStart = Math.max(hr, terrRight);
+        if (rightSolidStart < CW) ctx.fillRect(rightSolidStart, s.y, CW - rightSolidStart, 2);
+        // Between hole and terrain on the same side (no lip near hole edge either)
+        if (s.terrain && s.terrain.type !== 'hillshelf') {
+            if (terrLeft > hr + 4)  ctx.fillRect(hr + 4, s.y, terrLeft - hr - 4, 2);
+            if (terrRight < hl - 4) ctx.fillRect(terrRight, s.y, hl - terrRight - 4, 2);
         }
 
-        // Hole: same as background colour
-        ctx.fillStyle = GB.lightest;
-        ctx.fillRect(hl, s.y, hw, SHELF_H);
-
-        // Hole edge walls (bright lines)
-        ctx.fillStyle = GB.mid;
-        ctx.fillRect(hl - 2, s.y, 2, SHELF_H);
-        ctx.fillRect(hr,     s.y, 2, SHELF_H);
-
-        // Hole top lip (dark line)
-        ctx.fillStyle = GB.dark;
-        ctx.fillRect(hl, s.y, hw, 2);
+        // Hole: true gap — just leave it as background (GB.lightest), no lip or walls
+        // The canvas background fill already covers this area
 
         // ── Terrain (hill or dip) ──
         if (s.terrain) {
@@ -870,22 +861,7 @@ function drawTerrain(s) {
             ctx.fillRect(hx, yTop, 1, baseY - yTop + 1);
         }
 
-        // Hole edge walls (same bright green as regular holes)
-        ctx.fillStyle = GB.mid;
-        // Find surface Y at hole edges
-        const leftEdgeY  = baseY + curveY(hl - startX);
-        const rightEdgeY = baseY + curveY(hr - startX);
-        ctx.fillRect(hl - 2, leftEdgeY,  2, baseY - leftEdgeY + SHELF_H);
-        ctx.fillRect(hr,     rightEdgeY, 2, baseY - rightEdgeY + SHELF_H);
-
-        // Dark lip along the top of the hole opening (follows hill curve)
-        ctx.fillStyle = GB.dark;
-        for (let px = 0; px <= hw; px++) {
-            const hx   = hl + px;
-            const relX = hx - startX;
-            const yTop = baseY + curveY(relX);
-            ctx.fillRect(hx, yTop, 1, 2);
-        }
+        // No walls or lip — pure gap through the hill
 
         return;
     }
