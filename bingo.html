@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LOFTS FAD BINGO</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #1a1a2e;
+            color: white;
+            min-height: 100vh;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: url('images/countryside.jpg');
+            background-size: cover;
+            background-position: center;
+            opacity: 0.07;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* NAME ENTRY SCREEN */
+        #name-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        #name-screen h1 {
+            font-size: 52px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: white;
+            text-shadow: 2px 2px 20px rgba(0,0,0,0.8);
+            margin-bottom: 16px;
+        }
+
+        #name-screen p {
+            font-size: 18px;
+            color: #ccc;
+            margin-bottom: 40px;
+            max-width: 500px;
+            line-height: 1.6;
+        }
+
+        #name-screen input {
+            font-size: 22px;
+            padding: 14px 24px;
+            border-radius: 8px;
+            border: 2px solid #2c3e50;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            width: 300px;
+            text-align: center;
+            outline: none;
+            margin-bottom: 20px;
+        }
+
+        #name-screen input::placeholder { color: #aaa; }
+
+        #name-screen input:focus { border-color: #4a90d9; }
+
+        #start-btn {
+            font-size: 18px;
+            padding: 14px 40px;
+            background-color: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            letter-spacing: 2px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        #start-btn:hover { background-color: #3d5166; }
+
+        /* BINGO SCREEN */
+        #bingo-screen { display: none; padding: 40px 20px 80px; }
+
+        .bingo-header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .bingo-header h1 {
+            font-size: 48px;
+            font-weight: bold;
+            letter-spacing: 4px;
+            color: white;
+            text-shadow: 2px 2px 20px rgba(0,0,0,0.8);
+            margin-bottom: 12px;
+        }
+
+        .bingo-header .subtitle {
+            font-size: 16px;
+            color: #ccc;
+            max-width: 600px;
+            margin: 0 auto 8px;
+            line-height: 1.6;
+        }
+
+        .bingo-header .player-name {
+            font-size: 14px;
+            color: #888;
+            margin-top: 10px;
+        }
+
+        /* SCORE BAR */
+        .score-bar {
+            text-align: center;
+            margin-bottom: 24px;
+            font-size: 16px;
+            color: #aaa;
+        }
+
+        .score-bar span { color: white; font-weight: bold; font-size: 20px; }
+
+        /* GRID */
+        .bingo-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .bingo-cell {
+            background: rgba(44, 62, 80, 0.7);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 10px;
+            aspect-ratio: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.15s, border-color 0.2s, background 0.2s;
+            padding: 8px;
+            position: relative;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .bingo-cell:hover {
+            transform: scale(1.03);
+            border-color: rgba(255,255,255,0.3);
+            background: rgba(61, 81, 102, 0.85);
+        }
+
+        .bingo-cell.completed {
+            border-color: #27ae60;
+            background: rgba(39, 174, 96, 0.25);
+        }
+
+        .bingo-cell.completed::after {
+            content: '✓';
+            position: absolute;
+            top: 6px;
+            right: 8px;
+            font-size: 16px;
+            color: #27ae60;
+            font-weight: bold;
+        }
+
+        .bingo-cell.highlight-line {
+            border-color: #f39c12;
+            background: rgba(243, 156, 18, 0.25);
+            animation: pulse-line 1s ease-in-out 3;
+        }
+
+        @keyframes pulse-line {
+            0%, 100% { box-shadow: none; }
+            50% { box-shadow: 0 0 18px rgba(243, 156, 18, 0.7); }
+        }
+
+        .cell-photo {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            object-fit: cover;
+            width: 100%;
+            height: 100%;
+            border-radius: 8px;
+            opacity: 0.45;
+        }
+
+        .cell-title {
+            font-size: 11px;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+            color: white;
+            text-shadow: 1px 1px 4px rgba(0,0,0,0.9);
+            position: relative;
+            z-index: 1;
+            line-height: 1.3;
+        }
+
+        /* MODAL */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-overlay.open { display: flex; }
+
+        .modal {
+            background: #1e2d3d;
+            border: 2px solid #2c3e50;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 460px;
+            width: 100%;
+            position: relative;
+            text-align: center;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 12px; right: 16px;
+            background: none;
+            border: none;
+            color: #aaa;
+            font-size: 24px;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .modal-close:hover { color: white; }
+
+        .modal h2 {
+            font-size: 26px;
+            font-weight: bold;
+            letter-spacing: 2px;
+            color: white;
+            margin-bottom: 12px;
+        }
+
+        .modal p {
+            font-size: 15px;
+            color: #bbb;
+            line-height: 1.7;
+            margin-bottom: 24px;
+        }
+
+        .modal-photo-preview {
+            width: 100%;
+            max-height: 220px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .modal-status {
+            font-size: 13px;
+            color: #27ae60;
+            margin-bottom: 16px;
+            display: none;
+            font-weight: bold;
+        }
+
+        .upload-btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #2c3e50;
+            color: white;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            transition: background 0.2s;
+        }
+
+        .upload-btn:hover { background: #3d5166; }
+
+        .upload-btn.completed-btn {
+            background: rgba(39, 174, 96, 0.3);
+            border-color: #27ae60;
+        }
+
+        #photo-file-input { display: none; }
+
+        .modal-saving {
+            font-size: 13px;
+            color: #aaa;
+            margin-top: 10px;
+            display: none;
+        }
+
+        /* ADMIN SCREEN */
+        #admin-screen {
+            display: none;
+            padding: 40px 20px 80px;
+        }
+
+        .admin-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .admin-header h1 {
+            font-size: 40px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            color: white;
+            margin-bottom: 10px;
+        }
+
+        .admin-header p { color: #aaa; font-size: 16px; }
+
+        .admin-player {
+            max-width: 900px;
+            margin: 0 auto 50px;
+            background: rgba(44, 62, 80, 0.4);
+            border-radius: 12px;
+            padding: 28px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .admin-player h2 {
+            font-size: 22px;
+            letter-spacing: 2px;
+            margin-bottom: 6px;
+            color: white;
+        }
+
+        .admin-player .admin-stats {
+            font-size: 14px;
+            color: #888;
+            margin-bottom: 20px;
+        }
+
+        .admin-photos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 12px;
+        }
+
+        .admin-photo-item {
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .admin-photo-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .admin-photo-label {
+            font-size: 11px;
+            color: #ccc;
+            padding: 6px 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .admin-empty {
+            color: #555;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        @media (max-width: 500px) {
+            .bingo-header h1 { font-size: 32px; }
+            .bingo-grid { gap: 7px; }
+            .cell-title { font-size: 9px; }
+            .modal { padding: 24px 18px; }
+            .modal h2 { font-size: 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAME ENTRY -->
+<div id="name-screen">
+    <h1>LOFTS FAD BINGO</h1>
+    <p>Please enter your name to get your unique personal Bingo grid for the weekend!</p>
+    <input type="text" id="name-input" placeholder="Your name..." maxlength="30" />
+    <button id="start-btn">GET MY GRID</button>
+</div>
+
+<!-- BINGO GRID -->
+<div id="bingo-screen">
+    <div class="bingo-header">
+        <h1>LOFTS FAD BINGO</h1>
+        <p class="subtitle">Please see below your unique Bingo grid to capture pictures of Andy over the weekend engaging in some of his many fads over the years. Please click on the square for more detail and to upload your photo. Most rows completed wins!</p>
+        <p class="player-name" id="player-name-display"></p>
+    </div>
+    <div class="score-bar">
+        Completed: <span id="score-display">0</span> / 16
+    </div>
+    <div class="bingo-grid" id="bingo-grid"></div>
+</div>
+
+<!-- ADMIN VIEW -->
+<div id="admin-screen">
+    <div class="admin-header">
+        <h1>🛠 ADMIN VIEW</h1>
+        <p>All uploaded photos from all players</p>
+    </div>
+    <div id="admin-content"></div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+        <button class="modal-close" id="modal-close">✕</button>
+        <h2 id="modal-title"></h2>
+        <p id="modal-desc"></p>
+        <img class="modal-photo-preview" id="modal-photo-preview" />
+        <div class="modal-status" id="modal-status">✓ Photo uploaded!</div>
+        <label class="upload-btn" id="upload-btn-label" for="photo-file-input">
+            📷 Upload Photo
+        </label>
+        <input type="file" id="photo-file-input" accept="image/*" capture="environment" />
+        <div class="modal-saving" id="modal-saving">Saving...</div>
+    </div>
+</div>
+
+<script>
+const BINGO_ITEMS = [
+    { title: "Poker", desc: "Capture Lofts playing Poker" },
+    { title: "THREE!", desc: "Capture a photo of Andy holding 3 of the same item (ideally 3 bars of Cadburys fruit and nut)" },
+    { title: "Kettle bells", desc: "Photograph Andy lifting a kettle" },
+    { title: "Rowing", desc: "Capture Lofts with a body of water (larger than a cooking pot)" },
+    { title: "Mark Ripptoe", desc: "Capture a photo of Andys sockless toe (his face must also be in it to proove its him)" },
+    { title: "Climbing", desc: "Capture Lofts climbing something" },
+    { title: "Cocktails", desc: "Photograph Andy mixing cocktails" },
+    { title: "\"Beast Skills\"", desc: "Photograph Lofts looking beastly (like a bear etc.)" },
+    { title: "Becoming 100kg", desc: "Capture Andy with a mouth very full of food" },
+    { title: "Golf", desc: "Photograph Lofts playing golf" },
+    { title: "Wagu Beef", desc: "Capture Lofts eating steak" },
+    { title: "Playing Dark Souls", desc: "Photograph Andy looking very sad" },
+    { title: "Matt Wilpers", desc: "Capture Lofts jogging OR lunging" },
+    { title: "\"Accidentally\" joining a Cult", desc: "Photograph Andy with his hands in a praying motion OR with a halo above his head" },
+    { title: "Cross Fit", desc: "Capture Lofts lifting something very heavy" },
+    { title: "Urinating relentlessly", desc: "Photograph Andy urinating" },
+    { title: "House Plants", desc: "Capture Andy admiring a plant when indoors OR touching a tree outdoors" },
+    { title: "Brown Food", desc: "Photograph Andy with a plate of entirely brown food" },
+    { title: "Being Canadian", desc: "Photograph Andy holding a big leaf" },
+    { title: "Tech support", desc: "Capture Andy using a laptop OR modifying the settings on any electronic device" },
+    { title: "Brown Shoes", desc: "Photograph Andy wearing brown shoes" },
+    { title: "Growing mushrooms", desc: "Photograph Andy with some Mushrooms, Fungi, Mould etc." },
+    { title: "Admiring fancy Watches", desc: "Photograph Andy checking the time on his watch or a clock" },
+    { title: "Ab Ripper X", desc: "Photograph Andys beautiful abs" },
+    { title: "Drinking too much milk", desc: "Capture Andy holding lots of milk" },
+    { title: "Owning too many books", desc: "Photograph Andy reading a book" },
+    { title: "Calisthenics", desc: "Photograph Lofts squatting" }
+];
+
+// Lines to check: 4 rows + 4 cols + 2 diagonals
+const LINES = [
+    [0,1,2,3],[4,5,6,7],[8,9,10,11],[12,13,14,15],
+    [0,4,8,12],[1,5,9,13],[2,6,10,14],[3,7,11,15],
+    [0,5,10,15],[3,6,9,12]
+];
+
+let userId = null;
+let playerName = null;
+let userGrid = []; // array of 16 item indices
+let completedLines = new Set();
+let currentCellIndex = null;
+
+// --- STORAGE HELPERS ---
+async function storageGet(key, shared = false) {
+    try { return await window.storage.get(key, shared); } catch(e) { return null; }
+}
+async function storageSet(key, value, shared = false) {
+    try { return await window.storage.set(key, value, shared); } catch(e) { return null; }
+}
+async function storageList(prefix, shared = false) {
+    try { return await window.storage.list(prefix, shared); } catch(e) { return null; }
+}
+
+// --- SEEDED SHUFFLE ---
+function seededShuffle(array, seed) {
+    let arr = [...array];
+    let s = seed;
+    for (let i = arr.length - 1; i > 0; i--) {
+        s = (s * 1664525 + 1013904223) & 0xffffffff;
+        const j = Math.abs(s) % (i + 1);
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+}
+
+function strToSeed(str) {
+    let hash = 0;
+    for (let c of str) hash = ((hash << 5) - hash + c.charCodeAt(0)) | 0;
+    return Math.abs(hash);
+}
+
+function generateGrid(uid) {
+    const seed = strToSeed(uid);
+    const shuffled = seededShuffle(BINGO_ITEMS.map((_, i) => i), seed);
+    return shuffled.slice(0, 16);
+}
+
+// --- INIT ---
+async function init() {
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get('admin') === 'true') {
+        showAdminScreen();
+        return;
+    }
+
+    // Try to load existing user
+    const savedUser = await storageGet('user-identity');
+    if (savedUser) {
+        const data = JSON.parse(savedUser.value);
+        userId = data.userId;
+        playerName = data.name;
+        userGrid = generateGrid(userId);
+        showBingoScreen();
+    } else {
+        document.getElementById('name-screen').style.display = 'flex';
+    }
+}
+
+document.getElementById('start-btn').addEventListener('click', async () => {
+    const name = document.getElementById('name-input').value.trim();
+    if (!name) { alert('Please enter your name!'); return; }
+
+    playerName = name;
+    userId = name.toLowerCase().replace(/\s+/g, '_') + '_' + Math.random().toString(36).slice(2, 7);
+    userGrid = generateGrid(userId);
+
+    await storageSet('user-identity', JSON.stringify({ userId, name }));
+    showBingoScreen();
+});
+
+document.getElementById('name-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('start-btn').click();
+});
+
+// --- BINGO SCREEN ---
+async function showBingoScreen() {
+    document.getElementById('name-screen').style.display = 'none';
+    document.getElementById('bingo-screen').style.display = 'block';
+    document.getElementById('player-name-display').textContent = `Playing as: ${playerName}`;
+    renderGrid();
+}
+
+async function renderGrid() {
+    const grid = document.getElementById('bingo-grid');
+    grid.innerHTML = '';
+
+    // Load saved data
+    const saved = await storageGet(`player-data:${userId}`);
+    const playerData = saved ? JSON.parse(saved.value) : { photos: {} };
+
+    let completed = 0;
+
+    userGrid.forEach((itemIdx, cellPos) => {
+        const item = BINGO_ITEMS[itemIdx];
+        const cell = document.createElement('div');
+        cell.className = 'bingo-cell';
+        cell.dataset.pos = cellPos;
+        cell.dataset.item = itemIdx;
+
+        const hasPhoto = !!playerData.photos[cellPos];
+        if (hasPhoto) {
+            cell.classList.add('completed');
+            completed++;
+            const img = document.createElement('img');
+            img.className = 'cell-photo';
+            img.src = playerData.photos[cellPos];
+            cell.appendChild(img);
+        }
+
+        const title = document.createElement('div');
+        title.className = 'cell-title';
+        title.textContent = item.title;
+        cell.appendChild(title);
+
+        cell.addEventListener('click', () => openModal(cellPos, itemIdx, playerData));
+        grid.appendChild(cell);
+    });
+
+    document.getElementById('score-display').textContent = completed;
+    checkLines(playerData);
+}
+
+function checkLines(playerData) {
+    const newlyCompleted = [];
+    LINES.forEach((line, lineIdx) => {
+        const allDone = line.every(pos => !!playerData.photos[pos]);
+        if (allDone && !completedLines.has(lineIdx)) {
+            completedLines.add(lineIdx);
+            newlyCompleted.push(line);
+        }
+    });
+
+    // Highlight all completed lines
+    completedLines.forEach(lineIdx => {
+        LINES[lineIdx].forEach(pos => {
+            const cell = document.querySelector(`.bingo-cell[data-pos="${pos}"]`);
+            if (cell) cell.classList.add('highlight-line');
+        });
+    });
+
+    if (newlyCompleted.length > 0) {
+        newlyCompleted.forEach(line => {
+            line.forEach(pos => {
+                const cell = document.querySelector(`.bingo-cell[data-pos="${pos}"]`);
+                if (cell) cell.classList.add('highlight-line');
+            });
+        });
+    }
+}
+
+// --- MODAL ---
+function openModal(cellPos, itemIdx, playerData) {
+    currentCellIndex = cellPos;
+    const item = BINGO_ITEMS[itemIdx];
+    document.getElementById('modal-title').textContent = item.title;
+    document.getElementById('modal-desc').textContent = item.desc;
+
+    const preview = document.getElementById('modal-photo-preview');
+    const status = document.getElementById('modal-status');
+    const uploadLabel = document.getElementById('upload-btn-label');
+
+    if (playerData.photos[cellPos]) {
+        preview.src = playerData.photos[cellPos];
+        preview.style.display = 'block';
+        status.style.display = 'block';
+        uploadLabel.textContent = '📷 Replace Photo';
+        uploadLabel.className = 'upload-btn completed-btn';
+    } else {
+        preview.style.display = 'none';
+        status.style.display = 'none';
+        uploadLabel.textContent = '📷 Upload Photo';
+        uploadLabel.className = 'upload-btn';
+    }
+
+    document.getElementById('modal-saving').style.display = 'none';
+    document.getElementById('photo-file-input').value = '';
+    document.getElementById('modal-overlay').classList.add('open');
+}
+
+document.getElementById('modal-close').addEventListener('click', () => {
+    document.getElementById('modal-overlay').classList.remove('open');
+});
+
+document.getElementById('modal-overlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('modal-overlay')) {
+        document.getElementById('modal-overlay').classList.remove('open');
+    }
+});
+
+document.getElementById('photo-file-input').addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const savingEl = document.getElementById('modal-saving');
+    savingEl.style.display = 'block';
+    savingEl.textContent = 'Saving...';
+
+    const reader = new FileReader();
+    reader.onload = async (ev) => {
+        const base64 = ev.target.result;
+
+        // Load existing data
+        const saved = await storageGet(`player-data:${userId}`);
+        const playerData = saved ? JSON.parse(saved.value) : { photos: {} };
+
+        playerData.photos[currentCellIndex] = base64;
+        playerData.name = playerName;
+        playerData.grid = userGrid;
+        playerData.lastUpdated = new Date().toISOString();
+
+        // Save personal data
+        await storageSet(`player-data:${userId}`, JSON.stringify(playerData));
+
+        // Save to shared admin store
+        await storageSet(`admin-player:${userId}`, JSON.stringify({
+            name: playerName,
+            userId,
+            grid: userGrid,
+            photoKeys: Object.keys(playerData.photos).map(Number)
+        }), true);
+
+        // Save individual photo to shared store for admin
+        await storageSet(`admin-photo:${userId}:${currentCellIndex}`, JSON.stringify({
+            name: playerName,
+            cellPos: currentCellIndex,
+            itemTitle: BINGO_ITEMS[userGrid[currentCellIndex]].title,
+            photo: base64,
+            uploadedAt: new Date().toISOString()
+        }), true);
+
+        savingEl.textContent = '✓ Saved!';
+
+        // Update modal UI
+        const preview = document.getElementById('modal-photo-preview');
+        preview.src = base64;
+        preview.style.display = 'block';
+        document.getElementById('modal-status').style.display = 'block';
+        const uploadLabel = document.getElementById('upload-btn-label');
+        uploadLabel.textContent = '📷 Replace Photo';
+        uploadLabel.className = 'upload-btn completed-btn';
+
+        // Re-render grid
+        await renderGrid();
+
+        setTimeout(() => { savingEl.style.display = 'none'; }, 1500);
+    };
+    reader.readAsDataURL(file);
+});
+
+// --- ADMIN ---
+async function showAdminScreen() {
+    document.getElementById('name-screen').style.display = 'none';
+    document.getElementById('admin-screen').style.display = 'block';
+
+    const content = document.getElementById('admin-content');
+    content.innerHTML = '<p style="text-align:center;color:#aaa;">Loading all photos...</p>';
+
+    // Get all player keys
+    const playerList = await storageList('admin-player:', true);
+    if (!playerList || !playerList.keys || playerList.keys.length === 0) {
+        content.innerHTML = '<p style="text-align:center;color:#666;font-style:italic;">No photos uploaded yet.</p>';
+        return;
+    }
+
+    content.innerHTML = '';
+
+    for (const key of playerList.keys) {
+        const playerRaw = await storageGet(key, true);
+        if (!playerRaw) continue;
+        const player = JSON.parse(playerRaw.value);
+
+        // Get all photos for this player
+        const photoKeys = await storageList(`admin-photo:${player.userId}:`, true);
+        if (!photoKeys || !photoKeys.keys || photoKeys.keys.length === 0) continue;
+
+        const playerEl = document.createElement('div');
+        playerEl.className = 'admin-player';
+        playerEl.innerHTML = `
+            <h2>${player.name.toUpperCase()}</h2>
+            <div class="admin-stats">${photoKeys.keys.length} photo(s) uploaded</div>
+            <div class="admin-photos-grid" id="photos-${player.userId}"></div>
+        `;
+        content.appendChild(playerEl);
+
+        const photosGrid = document.getElementById(`photos-${player.userId}`);
+
+        for (const photoKey of photoKeys.keys) {
+            const photoRaw = await storageGet(photoKey, true);
+            if (!photoRaw) continue;
+            const photoData = JSON.parse(photoRaw.value);
+
+            const item = document.createElement('div');
+            item.className = 'admin-photo-item';
+            item.innerHTML = `
+                <img src="${photoData.photo}" alt="${photoData.itemTitle}" />
+                <div class="admin-photo-label">${photoData.itemTitle}</div>
+            `;
+            photosGrid.appendChild(item);
+        }
+    }
+
+    if (content.children.length === 0) {
+        content.innerHTML = '<p style="text-align:center;color:#666;font-style:italic;">No photos uploaded yet.</p>';
+    }
+}
+
+init();
+</script>
+</body>
+</html>
