@@ -5,12 +5,24 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LOFTS FAD BINGO</title>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Lato:wght@300;400;700&display=swap');
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
+        :root {
+            --dark: #0d1117;
+            --panel: rgba(22, 33, 44, 0.92);
+            --border: rgba(255,255,255,0.1);
+            --green: #2ecc71;
+            --gold: #f39c12;
+            --text: #e8e8e8;
+            --muted: #7f8c8d;
+        }
+
         body {
-            font-family: 'Arial', sans-serif;
-            background-color: #1a1a2e;
-            color: white;
+            font-family: 'Lato', sans-serif;
+            background-color: var(--dark);
+            color: var(--text);
             min-height: 100vh;
         }
 
@@ -21,774 +33,628 @@
             background-image: url('images/countryside.jpg');
             background-size: cover;
             background-position: center;
-            opacity: 0.07;
+            opacity: 0.06;
             z-index: -1;
             pointer-events: none;
         }
 
-        /* NAME ENTRY SCREEN */
-        #name-screen {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            padding: 40px 20px;
-            text-align: center;
-        }
+        /* NAME SCREEN */
+        #name-screen { display: none; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 40px 20px; text-align: center; }
+        #name-screen.active { display: flex; }
 
-        #name-screen h1 {
-            font-size: 52px;
-            font-weight: bold;
-            letter-spacing: 4px;
-            color: white;
-            text-shadow: 2px 2px 20px rgba(0,0,0,0.8);
-            margin-bottom: 16px;
-        }
+        .logo { font-family: 'Bebas Neue', sans-serif; font-size: 60px; letter-spacing: 6px; color: white; text-shadow: 0 0 40px rgba(243,156,18,0.4); margin-bottom: 6px; }
+        .logo-sub { font-size: 12px; letter-spacing: 4px; color: var(--gold); text-transform: uppercase; margin-bottom: 44px; }
 
-        #name-screen p {
-            font-size: 18px;
-            color: #ccc;
-            margin-bottom: 40px;
-            max-width: 500px;
-            line-height: 1.6;
-        }
-
-        #name-screen input {
-            font-size: 22px;
-            padding: 14px 24px;
-            border-radius: 8px;
-            border: 2px solid #2c3e50;
-            background: rgba(255,255,255,0.1);
-            color: white;
-            width: 300px;
-            text-align: center;
-            outline: none;
-            margin-bottom: 20px;
-        }
-
-        #name-screen input::placeholder { color: #aaa; }
-
-        #name-screen input:focus { border-color: #4a90d9; }
-
-        #start-btn {
-            font-size: 18px;
-            padding: 14px 40px;
-            background-color: #2c3e50;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            letter-spacing: 2px;
-            font-weight: bold;
-            transition: background 0.2s;
-        }
-
-        #start-btn:hover { background-color: #3d5166; }
+        .name-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 36px 32px; max-width: 420px; width: 100%; }
+        .name-card p { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 24px; }
+        .name-list { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 24px; }
+        .name-chip { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); font-size: 13px; color: var(--muted); cursor: pointer; transition: all 0.15s; background: transparent; font-family: 'Lato', sans-serif; }
+        .name-chip:hover { border-color: var(--gold); color: var(--gold); }
+        .name-chip.selected { background: var(--gold); border-color: var(--gold); color: black; font-weight: 700; }
+        .go-btn { width: 100%; padding: 14px; background: var(--gold); color: black; border: none; border-radius: 8px; font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 3px; cursor: pointer; transition: opacity 0.2s; }
+        .go-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+        .go-btn:not(:disabled):hover { opacity: 0.85; }
 
         /* BINGO SCREEN */
-        #bingo-screen { display: none; padding: 40px 20px 80px; }
+        #bingo-screen { display: none; padding: 32px 16px 80px; }
+        #bingo-screen.active { display: block; }
 
-        .bingo-header {
-            text-align: center;
-            margin-bottom: 36px;
-        }
+        .bingo-header { text-align: center; max-width: 660px; margin: 0 auto 24px; }
+        .bingo-header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 50px; letter-spacing: 5px; color: white; text-shadow: 0 0 30px rgba(243,156,18,0.3); margin-bottom: 10px; }
+        .bingo-header .subtitle { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 12px; }
+        .player-badge { display: inline-block; padding: 4px 16px; background: rgba(243,156,18,0.12); border: 1px solid rgba(243,156,18,0.28); border-radius: 20px; font-size: 13px; color: var(--gold); letter-spacing: 1px; }
 
-        .bingo-header h1 {
-            font-size: 48px;
-            font-weight: bold;
-            letter-spacing: 4px;
-            color: white;
-            text-shadow: 2px 2px 20px rgba(0,0,0,0.8);
-            margin-bottom: 12px;
-        }
+        .stats-row { display: flex; justify-content: center; gap: 24px; margin-bottom: 20px; font-size: 14px; color: var(--muted); flex-wrap: wrap; }
+        .stats-row strong { color: var(--green); font-size: 18px; }
+        .stats-row .lines strong { color: var(--gold); }
 
-        .bingo-header .subtitle {
-            font-size: 16px;
-            color: #ccc;
-            max-width: 600px;
-            margin: 0 auto 8px;
-            line-height: 1.6;
-        }
+        .bingo-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; max-width: 620px; margin: 0 auto; }
 
-        .bingo-header .player-name {
-            font-size: 14px;
-            color: #888;
-            margin-top: 10px;
-        }
+        .bingo-cell { background: var(--panel); border: 1.5px solid var(--border); border-radius: 10px; aspect-ratio: 1; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: transform 0.12s, border-color 0.2s, background 0.2s; padding: 6px; position: relative; overflow: hidden; text-align: center; }
+        .bingo-cell:active { transform: scale(0.95); }
+        .bingo-cell.completed { border-color: var(--green); background: rgba(46,204,113,0.1); }
+        .bingo-cell.line-complete { border-color: var(--gold); background: rgba(243,156,18,0.16); box-shadow: 0 0 10px rgba(243,156,18,0.2); }
 
-        /* SCORE BAR */
-        .score-bar {
-            text-align: center;
-            margin-bottom: 24px;
-            font-size: 16px;
-            color: #aaa;
-        }
-
-        .score-bar span { color: white; font-weight: bold; font-size: 20px; }
-
-        /* GRID */
-        .bingo-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            max-width: 700px;
-            margin: 0 auto;
-        }
-
-        .bingo-cell {
-            background: rgba(44, 62, 80, 0.7);
-            border: 2px solid rgba(255,255,255,0.1);
-            border-radius: 10px;
-            aspect-ratio: 1;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: transform 0.15s, border-color 0.2s, background 0.2s;
-            padding: 8px;
-            position: relative;
-            overflow: hidden;
-            text-align: center;
-        }
-
-        .bingo-cell:hover {
-            transform: scale(1.03);
-            border-color: rgba(255,255,255,0.3);
-            background: rgba(61, 81, 102, 0.85);
-        }
-
-        .bingo-cell.completed {
-            border-color: #27ae60;
-            background: rgba(39, 174, 96, 0.25);
-        }
-
-        .bingo-cell.completed::after {
-            content: '✓';
-            position: absolute;
-            top: 6px;
-            right: 8px;
-            font-size: 16px;
-            color: #27ae60;
-            font-weight: bold;
-        }
-
-        .bingo-cell.highlight-line {
-            border-color: #f39c12;
-            background: rgba(243, 156, 18, 0.25);
-            animation: pulse-line 1s ease-in-out 3;
-        }
-
-        @keyframes pulse-line {
-            0%, 100% { box-shadow: none; }
-            50% { box-shadow: 0 0 18px rgba(243, 156, 18, 0.7); }
-        }
-
-        .cell-photo {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            object-fit: cover;
-            width: 100%;
-            height: 100%;
-            border-radius: 8px;
-            opacity: 0.45;
-        }
-
-        .cell-title {
-            font-size: 11px;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            color: white;
-            text-shadow: 1px 1px 4px rgba(0,0,0,0.9);
-            position: relative;
-            z-index: 1;
-            line-height: 1.3;
-        }
+        .tick { position: absolute; top: 5px; right: 6px; font-size: 12px; color: var(--green); font-weight: bold; }
+        .cell-thumb { position: absolute; inset: 0; object-fit: cover; width: 100%; height: 100%; opacity: 0.38; border-radius: 8px; }
+        .cell-title { font-size: 10px; font-weight: 700; color: white; text-shadow: 0 1px 6px rgba(0,0,0,1); position: relative; z-index: 1; line-height: 1.3; }
 
         /* MODAL */
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.85);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.88); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
         .modal-overlay.open { display: flex; }
-
-        .modal {
-            background: #1e2d3d;
-            border: 2px solid #2c3e50;
-            border-radius: 16px;
-            padding: 32px;
-            max-width: 460px;
-            width: 100%;
-            position: relative;
-            text-align: center;
-        }
-
-        .modal-close {
-            position: absolute;
-            top: 12px; right: 16px;
-            background: none;
-            border: none;
-            color: #aaa;
-            font-size: 24px;
-            cursor: pointer;
-            line-height: 1;
-        }
-
+        .modal { background: #16212c; border: 1px solid var(--border); border-radius: 18px; padding: 30px 26px; max-width: 430px; width: 100%; position: relative; text-align: center; max-height: 90vh; overflow-y: auto; }
+        .modal-close { position: absolute; top: 12px; right: 16px; background: none; border: none; color: var(--muted); font-size: 22px; cursor: pointer; }
         .modal-close:hover { color: white; }
+        .modal-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px; color: white; margin-bottom: 10px; }
+        .modal-desc { font-size: 14px; color: var(--muted); line-height: 1.7; margin-bottom: 20px; }
+        .modal-img { width: 100%; max-height: 200px; object-fit: cover; border-radius: 10px; margin-bottom: 16px; display: none; }
+        .modal-done-msg { font-size: 13px; color: var(--green); font-weight: 700; margin-bottom: 12px; display: none; }
+        .upload-label { display: inline-block; padding: 12px 26px; background: #1e2d3d; color: white; border: 1.5px solid var(--border); border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 700; letter-spacing: 1px; transition: background 0.2s; font-family: 'Lato', sans-serif; }
+        .upload-label:hover { background: #253444; }
+        .upload-label.done { background: rgba(46,204,113,0.12); border-color: var(--green); }
+        #file-input { display: none; }
+        .saving-msg { font-size: 12px; color: var(--muted); margin-top: 10px; min-height: 16px; }
 
-        .modal h2 {
-            font-size: 26px;
-            font-weight: bold;
-            letter-spacing: 2px;
-            color: white;
-            margin-bottom: 12px;
-        }
+        /* ADMIN */
+        #admin-screen { display: none; padding: 40px 20px 80px; }
+        #admin-screen.active { display: block; }
+        .admin-header { text-align: center; margin-bottom: 36px; }
+        .admin-header h1 { font-family: 'Bebas Neue', sans-serif; font-size: 42px; letter-spacing: 4px; margin-bottom: 6px; }
+        .admin-header p { color: var(--muted); font-size: 14px; }
 
-        .modal p {
-            font-size: 15px;
-            color: #bbb;
-            line-height: 1.7;
-            margin-bottom: 24px;
-        }
+        .admin-summary { max-width: 960px; margin: 0 auto 32px; display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
+        .summary-chip { background: var(--panel); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+        .summary-chip .sname { font-size: 13px; font-weight: 700; color: white; margin-bottom: 4px; }
+        .summary-chip .sstat { font-size: 12px; color: var(--muted); }
+        .summary-chip .sstat .gold { color: var(--gold); font-weight: 700; }
+        .summary-chip .sstat .grn { color: var(--green); font-weight: 700; }
 
-        .modal-photo-preview {
-            width: 100%;
-            max-height: 220px;
-            object-fit: cover;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: none;
-        }
+        .admin-player-card { max-width: 960px; margin: 0 auto 36px; background: var(--panel); border: 1px solid var(--border); border-radius: 14px; padding: 24px; }
+        .admin-player-name { font-family: 'Bebas Neue', sans-serif; font-size: 24px; letter-spacing: 2px; color: white; margin-bottom: 4px; }
+        .admin-stats { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+        .admin-stats .gold { color: var(--gold); font-weight: 700; }
+        .admin-stats .grn { color: var(--green); font-weight: 700; }
+        .admin-photos-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(148px, 1fr)); gap: 10px; }
+        .admin-photo-card { background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+        .admin-photo-card img { width: 100%; height: 130px; object-fit: cover; display: block; cursor: pointer; transition: opacity 0.15s; }
+        .admin-photo-card img:hover { opacity: 0.85; }
+        .admin-photo-info { padding: 7px 9px; }
+        .admin-photo-title { font-size: 11px; font-weight: 700; color: white; margin-bottom: 2px; }
+        .admin-photo-player { font-size: 11px; color: var(--gold); }
 
-        .modal-status {
-            font-size: 13px;
-            color: #27ae60;
-            margin-bottom: 16px;
-            display: none;
-            font-weight: bold;
-        }
+        .admin-empty { text-align: center; color: var(--muted); padding: 60px 0; font-size: 15px; font-style: italic; }
+        .admin-loading { text-align: center; color: var(--muted); padding: 60px 0; font-size: 15px; }
 
-        .upload-btn {
-            display: inline-block;
-            padding: 12px 30px;
-            background: #2c3e50;
-            color: white;
-            border: 2px solid rgba(255,255,255,0.2);
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 15px;
-            font-weight: bold;
-            letter-spacing: 1px;
-            transition: background 0.2s;
-        }
+        /* Lightbox */
+        #lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.95); z-index: 200; align-items: center; justify-content: center; padding: 20px; cursor: pointer; }
+        #lightbox.open { display: flex; }
+        #lightbox img { max-width: 100%; max-height: 90vh; border-radius: 10px; object-fit: contain; }
 
-        .upload-btn:hover { background: #3d5166; }
-
-        .upload-btn.completed-btn {
-            background: rgba(39, 174, 96, 0.3);
-            border-color: #27ae60;
-        }
-
-        #photo-file-input { display: none; }
-
-        .modal-saving {
-            font-size: 13px;
-            color: #aaa;
-            margin-top: 10px;
-            display: none;
-        }
-
-        /* ADMIN SCREEN */
-        #admin-screen {
-            display: none;
-            padding: 40px 20px 80px;
-        }
-
-        .admin-header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .admin-header h1 {
-            font-size: 40px;
-            font-weight: bold;
-            letter-spacing: 3px;
-            color: white;
-            margin-bottom: 10px;
-        }
-
-        .admin-header p { color: #aaa; font-size: 16px; }
-
-        .admin-player {
-            max-width: 900px;
-            margin: 0 auto 50px;
-            background: rgba(44, 62, 80, 0.4);
-            border-radius: 12px;
-            padding: 28px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .admin-player h2 {
-            font-size: 22px;
-            letter-spacing: 2px;
-            margin-bottom: 6px;
-            color: white;
-        }
-
-        .admin-player .admin-stats {
-            font-size: 14px;
-            color: #888;
-            margin-bottom: 20px;
-        }
-
-        .admin-photos-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-            gap: 12px;
-        }
-
-        .admin-photo-item {
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            overflow: hidden;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .admin-photo-item img {
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-            display: block;
-        }
-
-        .admin-photo-label {
-            font-size: 11px;
-            color: #ccc;
-            padding: 6px 8px;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        .admin-empty {
-            color: #555;
-            font-size: 14px;
-            font-style: italic;
-        }
-
-        @media (max-width: 500px) {
-            .bingo-header h1 { font-size: 32px; }
-            .bingo-grid { gap: 7px; }
+        @media (max-width: 480px) {
+            .logo { font-size: 44px; }
+            .bingo-header h1 { font-size: 34px; }
+            .bingo-grid { gap: 6px; }
             .cell-title { font-size: 9px; }
-            .modal { padding: 24px 18px; }
-            .modal h2 { font-size: 20px; }
+            .modal { padding: 22px 14px; }
         }
     </style>
 </head>
 <body>
 
-<!-- NAME ENTRY -->
+<!-- NAME SCREEN -->
 <div id="name-screen">
-    <h1>LOFTS FAD BINGO</h1>
-    <p>Please enter your name to get your unique personal Bingo grid for the weekend!</p>
-    <input type="text" id="name-input" placeholder="Your name..." maxlength="30" />
-    <button id="start-btn">GET MY GRID</button>
+    <div class="logo">LOFTS FAD BINGO</div>
+    <div class="logo-sub">Andy's Stag Do · April 2026</div>
+    <div class="name-card">
+        <p>Tap your name below to load your unique personal grid for the weekend!</p>
+        <div class="name-list" id="name-list"></div>
+        <button class="go-btn" id="go-btn" disabled>GET MY GRID</button>
+    </div>
 </div>
 
-<!-- BINGO GRID -->
+<!-- BINGO SCREEN -->
 <div id="bingo-screen">
     <div class="bingo-header">
         <h1>LOFTS FAD BINGO</h1>
         <p class="subtitle">Please see below your unique Bingo grid to capture pictures of Andy over the weekend engaging in some of his many fads over the years. Please click on the square for more detail and to upload your photo. Most rows completed wins!</p>
-        <p class="player-name" id="player-name-display"></p>
+        <div class="player-badge" id="player-badge"></div>
     </div>
-    <div class="score-bar">
-        Completed: <span id="score-display">0</span> / 16
+    <div class="stats-row">
+        <div>Photos uploaded: <strong id="score-val">0</strong> / 16</div>
+        <div class="lines">Lines completed: <strong id="lines-val">0</strong> / 10</div>
     </div>
     <div class="bingo-grid" id="bingo-grid"></div>
 </div>
 
-<!-- ADMIN VIEW -->
+<!-- ADMIN SCREEN -->
 <div id="admin-screen">
     <div class="admin-header">
-        <h1>🛠 ADMIN VIEW</h1>
-        <p>All uploaded photos from all players</p>
+        <h1>🛠 Admin View</h1>
+        <p>All uploaded photos — live from Supabase</p>
     </div>
-    <div id="admin-content"></div>
+    <div id="admin-content"><div class="admin-loading">Loading photos...</div></div>
 </div>
 
 <!-- MODAL -->
 <div class="modal-overlay" id="modal-overlay">
     <div class="modal">
         <button class="modal-close" id="modal-close">✕</button>
-        <h2 id="modal-title"></h2>
-        <p id="modal-desc"></p>
-        <img class="modal-photo-preview" id="modal-photo-preview" />
-        <div class="modal-status" id="modal-status">✓ Photo uploaded!</div>
-        <label class="upload-btn" id="upload-btn-label" for="photo-file-input">
-            📷 Upload Photo
-        </label>
-        <input type="file" id="photo-file-input" accept="image/*" capture="environment" />
-        <div class="modal-saving" id="modal-saving">Saving...</div>
+        <div class="modal-title" id="modal-title"></div>
+        <div class="modal-desc" id="modal-desc"></div>
+        <img class="modal-img" id="modal-img" />
+        <div class="modal-done-msg" id="modal-done-msg">✓ Photo uploaded!</div>
+        <label class="upload-label" id="upload-label" for="file-input">📷 Upload Photo</label>
+        <input type="file" id="file-input" accept="image/*" />
+        <div class="saving-msg" id="saving-msg"></div>
     </div>
 </div>
 
+<!-- LIGHTBOX -->
+<div id="lightbox"><img id="lightbox-img" /></div>
+
 <script>
-const BINGO_ITEMS = [
-    { title: "Poker", desc: "Capture Lofts playing Poker" },
-    { title: "THREE!", desc: "Capture a photo of Andy holding 3 of the same item (ideally 3 bars of Cadburys fruit and nut)" },
-    { title: "Kettle bells", desc: "Photograph Andy lifting a kettle" },
-    { title: "Rowing", desc: "Capture Lofts with a body of water (larger than a cooking pot)" },
-    { title: "Mark Ripptoe", desc: "Capture a photo of Andys sockless toe (his face must also be in it to proove its him)" },
-    { title: "Climbing", desc: "Capture Lofts climbing something" },
-    { title: "Cocktails", desc: "Photograph Andy mixing cocktails" },
-    { title: "\"Beast Skills\"", desc: "Photograph Lofts looking beastly (like a bear etc.)" },
-    { title: "Becoming 100kg", desc: "Capture Andy with a mouth very full of food" },
-    { title: "Golf", desc: "Photograph Lofts playing golf" },
-    { title: "Wagu Beef", desc: "Capture Lofts eating steak" },
-    { title: "Playing Dark Souls", desc: "Photograph Andy looking very sad" },
-    { title: "Matt Wilpers", desc: "Capture Lofts jogging OR lunging" },
-    { title: "\"Accidentally\" joining a Cult", desc: "Photograph Andy with his hands in a praying motion OR with a halo above his head" },
-    { title: "Cross Fit", desc: "Capture Lofts lifting something very heavy" },
-    { title: "Urinating relentlessly", desc: "Photograph Andy urinating" },
-    { title: "House Plants", desc: "Capture Andy admiring a plant when indoors OR touching a tree outdoors" },
-    { title: "Brown Food", desc: "Photograph Andy with a plate of entirely brown food" },
-    { title: "Being Canadian", desc: "Photograph Andy holding a big leaf" },
-    { title: "Tech support", desc: "Capture Andy using a laptop OR modifying the settings on any electronic device" },
-    { title: "Brown Shoes", desc: "Photograph Andy wearing brown shoes" },
-    { title: "Growing mushrooms", desc: "Photograph Andy with some Mushrooms, Fungi, Mould etc." },
-    { title: "Admiring fancy Watches", desc: "Photograph Andy checking the time on his watch or a clock" },
-    { title: "Ab Ripper X", desc: "Photograph Andys beautiful abs" },
-    { title: "Drinking too much milk", desc: "Capture Andy holding lots of milk" },
-    { title: "Owning too many books", desc: "Photograph Andy reading a book" },
-    { title: "Calisthenics", desc: "Photograph Lofts squatting" }
+// ── SUPABASE CONFIG ──────────────────────────────────────────────────────────
+const SUPABASE_URL    = 'https://euywyjomtdibcnqcmwtm.supabase.co';
+const SUPABASE_ANON   = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1eXd5am9tdGRpYmNucWNtd3RtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxNzQ2NzAsImV4cCI6MjA5MTc1MDY3MH0.60mISY3mn0KljWUxjgJS69_DycyH5h-aZczjv5LqkNw';
+const BUCKET          = 'bingo-photos';
+
+// ── PLAYERS & ITEMS ──────────────────────────────────────────────────────────
+const PLAYERS = [
+    "Matt Clayton","Tim Greenway","Andrew McAulay","Owen Phillips",
+    "Justin Smith","Gareth Morse","Philip Metcalfe","Thomas Gray",
+    "Onur Yilmaz","Andrew Morse","Oliver Jones","Jon Gould","Tom Morse"
 ];
 
-// Lines to check: 4 rows + 4 cols + 2 diagonals
+const ITEMS = [
+    {title:"Poker",             desc:"Capture Lofts playing Poker"},
+    {title:"THREE!",            desc:"Capture a photo of Andy holding 3 of the same item (ideally 3 bars of Cadburys fruit and nut)"},
+    {title:"Kettle Bells",      desc:"Photograph Andy lifting a kettle"},
+    {title:"Rowing",            desc:"Capture Lofts with a body of water (larger than a cooking pot)"},
+    {title:"Mark Ripptoe",      desc:"Capture a photo of Andys sockless toe (his face must also be in it to prove its him)"},
+    {title:"Climbing",          desc:"Capture Lofts climbing something"},
+    {title:"Cocktails",         desc:"Photograph Andy mixing cocktails"},
+    {title:"Beast Skills",      desc:"Photograph Lofts looking beastly (like a bear etc.)"},
+    {title:"Becoming 100kg",    desc:"Capture Andy with a mouth very full of food"},
+    {title:"Golf",              desc:"Photograph Lofts playing golf"},
+    {title:"Wagu Beef",         desc:"Capture Lofts eating steak"},
+    {title:"Playing Dark Souls",desc:"Photograph Andy looking very sad"},
+    {title:"Matt Wilpers",      desc:"Capture Lofts jogging OR lunging"},
+    {title:"Joining a Cult",    desc:"Photograph Andy with his hands in a praying motion OR with a halo above his head"},
+    {title:"Cross Fit",         desc:"Capture Lofts lifting something very heavy"},
+    {title:"Urinating Relentlessly", desc:"Photograph Andy urinating"},
+    {title:"House Plants",      desc:"Capture Andy admiring a plant when indoors OR touching a tree outdoors"},
+    {title:"Brown Food",        desc:"Photograph Andy with a plate of entirely brown food"},
+    {title:"Being Canadian",    desc:"Photograph Andy holding a big leaf"},
+    {title:"Tech Support",      desc:"Capture Andy using a laptop OR modifying the settings on any electronic device"},
+    {title:"Brown Shoes",       desc:"Photograph Andy wearing brown shoes"},
+    {title:"Growing Mushrooms", desc:"Photograph Andy with some Mushrooms, Fungi, Mould etc."},
+    {title:"Fancy Watches",     desc:"Photograph Andy checking the time on his watch or a clock"},
+    {title:"Ab Ripper X",       desc:"Photograph Andys beautiful abs"},
+    {title:"Too Much Milk",     desc:"Capture Andy holding lots of milk"},
+    {title:"Too Many Books",    desc:"Photograph Andy reading a book"},
+    {title:"Calisthenics",      desc:"Photograph Lofts squatting"}
+];
+
 const LINES = [
     [0,1,2,3],[4,5,6,7],[8,9,10,11],[12,13,14,15],
     [0,4,8,12],[1,5,9,13],[2,6,10,14],[3,7,11,15],
     [0,5,10,15],[3,6,9,12]
 ];
 
-let userId = null;
-let playerName = null;
-let userGrid = []; // array of 16 item indices
-let completedLines = new Set();
-let currentCellIndex = null;
+// ── SUPABASE HELPERS ─────────────────────────────────────────────────────────
 
-// --- STORAGE HELPERS ---
-async function storageGet(key, shared = false) {
-    try { return await window.storage.get(key, shared); } catch(e) { return null; }
-}
-async function storageSet(key, value, shared = false) {
-    try { return await window.storage.set(key, value, shared); } catch(e) { return null; }
-}
-async function storageList(prefix, shared = false) {
-    try { return await window.storage.list(prefix, shared); } catch(e) { return null; }
-}
+const sbHeaders = {
+    'apikey': SUPABASE_ANON,
+    'Authorization': 'Bearer ' + SUPABASE_ANON
+};
 
-// --- SEEDED SHUFFLE ---
-function seededShuffle(array, seed) {
-    let arr = [...array];
-    let s = seed;
-    for (let i = arr.length - 1; i > 0; i--) {
-        s = (s * 1664525 + 1013904223) & 0xffffffff;
-        const j = Math.abs(s) % (i + 1);
-        [arr[i], arr[j]] = [arr[j], arr[i]];
+// Upload a blob to Supabase Storage, returns public URL or null
+async function sbUpload(path, blob, contentType) {
+    const url = `${SUPABASE_URL}/storage/v1/object/${BUCKET}/${path}`;
+    // Try upsert first (in case file already exists)
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { ...sbHeaders, 'Content-Type': contentType, 'x-upsert': 'true' },
+        body: blob
+    });
+    if (!res.ok) {
+        const err = await res.text();
+        console.error('Upload failed:', err);
+        return null;
     }
-    return arr;
+    return sbPublicUrl(path);
 }
 
-function strToSeed(str) {
-    let hash = 0;
-    for (let c of str) hash = ((hash << 5) - hash + c.charCodeAt(0)) | 0;
-    return Math.abs(hash);
+function sbPublicUrl(path) {
+    return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`;
 }
 
-function generateGrid(uid) {
-    const seed = strToSeed(uid);
-    const shuffled = seededShuffle(BINGO_ITEMS.map((_, i) => i), seed);
-    return shuffled.slice(0, 16);
+// List all files in a folder
+async function sbList(folder) {
+    const url = `${SUPABASE_URL}/storage/v1/object/list/${BUCKET}`;
+    const res = await fetch(url, {
+        method: 'POST',
+        headers: { ...sbHeaders, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prefix: folder, limit: 100, offset: 0 })
+    });
+    if (!res.ok) return [];
+    return await res.json();
 }
 
-// --- INIT ---
-async function init() {
-    const params = new URLSearchParams(window.location.search);
+// ── GRID GENERATION (deterministic per name) ─────────────────────────────────
 
-    if (params.get('admin') === 'true') {
-        showAdminScreen();
-        return;
+function strHash(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = Math.imul(31, h) + s.charCodeAt(i) | 0;
+    return Math.abs(h);
+}
+function seededShuffle(arr, seed) {
+    let a = [...arr], s = seed >>> 0;
+    for (let i = a.length - 1; i > 0; i--) {
+        s = (Math.imul(1664525, s) + 1013904223) >>> 0;
+        const j = s % (i + 1);
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+function gridForPlayer(name) {
+    return seededShuffle(ITEMS.map((_,i) => i), strHash(name)).slice(0, 16);
+}
+
+// ── LOCAL CACHE (for grid state + thumbnails) ────────────────────────────────
+// We use localStorage as a cache so the grid loads instantly and works offline.
+// Supabase is the source of truth for admin view.
+
+function playerKey(name) { return 'bingo3_' + name; }
+
+function loadCache(name) {
+    try { const r = localStorage.getItem(playerKey(name)); return r ? JSON.parse(r) : {photos:{}}; }
+    catch(e) { return {photos:{}}; }
+}
+function saveCache(name, data) {
+    try { localStorage.setItem(playerKey(name), JSON.stringify(data)); } catch(e) {}
+}
+
+// ── IMAGE COMPRESSION ────────────────────────────────────────────────────────
+
+function compressToBlob(file, maxPx, quality) {
+    return new Promise(resolve => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            let w = img.width, h = img.height;
+            const ratio = Math.min(maxPx/w, maxPx/h, 1);
+            w = Math.round(w*ratio); h = Math.round(h*ratio);
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            c.toBlob(blob => resolve(blob), 'image/jpeg', quality);
+        };
+        img.src = url;
+    });
+}
+
+function compressToDataURL(file, maxPx, quality) {
+    return new Promise(resolve => {
+        const img = new Image();
+        const url = URL.createObjectURL(file);
+        img.onload = () => {
+            URL.revokeObjectURL(url);
+            let w = img.width, h = img.height;
+            const ratio = Math.min(maxPx/w, maxPx/h, 1);
+            w = Math.round(w*ratio); h = Math.round(h*ratio);
+            const c = document.createElement('canvas');
+            c.width = w; c.height = h;
+            c.getContext('2d').drawImage(img, 0, 0, w, h);
+            resolve(c.toDataURL('image/jpeg', quality));
+        };
+        img.src = url;
+    });
+}
+
+// ── STATE ────────────────────────────────────────────────────────────────────
+let currentPlayer = null, currentGrid = [], currentCache = {}, currentCell = null;
+
+// ── INIT ─────────────────────────────────────────────────────────────────────
+function init() {
+    const p = new URLSearchParams(location.search);
+    if (p.get('admin') === 'true') { showAdmin(); return; }
+
+    const nameParam = p.get('player');
+    if (nameParam) {
+        const match = PLAYERS.find(n =>
+            n.toLowerCase().replace(/\s+/g,'') === nameParam.toLowerCase().replace(/\s+/g,'')
+        );
+        if (match) { loadPlayer(match); return; }
     }
 
-    // Try to load existing user
-    const savedUser = await storageGet('user-identity');
-    if (savedUser) {
-        const data = JSON.parse(savedUser.value);
-        userId = data.userId;
-        playerName = data.name;
-        userGrid = generateGrid(userId);
-        showBingoScreen();
-    } else {
-        document.getElementById('name-screen').style.display = 'flex';
-    }
+    const saved = localStorage.getItem('bingo3_current');
+    if (saved && PLAYERS.includes(saved)) { loadPlayer(saved); return; }
+
+    showNameScreen();
 }
 
-document.getElementById('start-btn').addEventListener('click', async () => {
-    const name = document.getElementById('name-input').value.trim();
-    if (!name) { alert('Please enter your name!'); return; }
+function showNameScreen() {
+    const list = document.getElementById('name-list');
+    let selected = null;
+    const goBtn = document.getElementById('go-btn');
 
-    playerName = name;
-    userId = name.toLowerCase().replace(/\s+/g, '_') + '_' + Math.random().toString(36).slice(2, 7);
-    userGrid = generateGrid(userId);
+    PLAYERS.forEach(name => {
+        const chip = document.createElement('button');
+        chip.className = 'name-chip';
+        chip.textContent = name;
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('.name-chip').forEach(c => c.classList.remove('selected'));
+            chip.classList.add('selected');
+            selected = name;
+            goBtn.disabled = false;
+        });
+        list.appendChild(chip);
+    });
 
-    await storageSet('user-identity', JSON.stringify({ userId, name }));
-    showBingoScreen();
-});
+    goBtn.addEventListener('click', () => {
+        if (!selected) return;
+        localStorage.setItem('bingo3_current', selected);
+        loadPlayer(selected);
+    });
 
-document.getElementById('name-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('start-btn').click();
-});
+    document.getElementById('name-screen').classList.add('active');
+}
 
-// --- BINGO SCREEN ---
-async function showBingoScreen() {
-    document.getElementById('name-screen').style.display = 'none';
-    document.getElementById('bingo-screen').style.display = 'block';
-    document.getElementById('player-name-display').textContent = `Playing as: ${playerName}`;
+function loadPlayer(name) {
+    currentPlayer = name;
+    currentGrid   = gridForPlayer(name);
+    currentCache  = loadCache(name);
+    document.getElementById('name-screen').classList.remove('active');
+    document.getElementById('bingo-screen').classList.add('active');
+    document.getElementById('player-badge').textContent = '👤 ' + name;
     renderGrid();
 }
 
-async function renderGrid() {
-    const grid = document.getElementById('bingo-grid');
-    grid.innerHTML = '';
+// ── GRID ─────────────────────────────────────────────────────────────────────
 
-    // Load saved data
-    const saved = await storageGet(`player-data:${userId}`);
-    const playerData = saved ? JSON.parse(saved.value) : { photos: {} };
+function completedLineSet() {
+    const set = new Set();
+    LINES.forEach(line => {
+        if (line.every(p => currentCache.photos && currentCache.photos[p]))
+            line.forEach(p => set.add(p));
+    });
+    return set;
+}
 
-    let completed = 0;
+function countLines() {
+    return LINES.filter(l => l.every(p => currentCache.photos && currentCache.photos[p])).length;
+}
 
-    userGrid.forEach((itemIdx, cellPos) => {
-        const item = BINGO_ITEMS[itemIdx];
+function renderGrid() {
+    const container = document.getElementById('bingo-grid');
+    container.innerHTML = '';
+    const linePos = completedLineSet();
+    let photoCount = 0;
+
+    currentGrid.forEach((itemIdx, pos) => {
+        const item = ITEMS[itemIdx];
+        const photoUrl = currentCache.photos && currentCache.photos[pos];
+        if (photoUrl) photoCount++;
+
         const cell = document.createElement('div');
-        cell.className = 'bingo-cell';
-        cell.dataset.pos = cellPos;
-        cell.dataset.item = itemIdx;
+        let cls = 'bingo-cell';
+        if (photoUrl) cls += ' completed';
+        if (linePos.has(pos)) cls += ' line-complete';
+        cell.className = cls;
 
-        const hasPhoto = !!playerData.photos[cellPos];
-        if (hasPhoto) {
-            cell.classList.add('completed');
-            completed++;
-            const img = document.createElement('img');
-            img.className = 'cell-photo';
-            img.src = playerData.photos[cellPos];
-            cell.appendChild(img);
+        if (photoUrl) {
+            const tick = document.createElement('span');
+            tick.className = 'tick'; tick.textContent = '✓';
+            cell.appendChild(tick);
+            const thumb = document.createElement('img');
+            thumb.className = 'cell-thumb'; thumb.src = photoUrl;
+            cell.appendChild(thumb);
         }
 
-        const title = document.createElement('div');
-        title.className = 'cell-title';
-        title.textContent = item.title;
-        cell.appendChild(title);
+        const titleEl = document.createElement('div');
+        titleEl.className = 'cell-title'; titleEl.textContent = item.title;
+        cell.appendChild(titleEl);
 
-        cell.addEventListener('click', () => openModal(cellPos, itemIdx, playerData));
-        grid.appendChild(cell);
+        cell.addEventListener('click', () => openModal(pos, itemIdx));
+        container.appendChild(cell);
     });
 
-    document.getElementById('score-display').textContent = completed;
-    checkLines(playerData);
+    document.getElementById('score-val').textContent = photoCount;
+    document.getElementById('lines-val').textContent = countLines();
 }
 
-function checkLines(playerData) {
-    const newlyCompleted = [];
-    LINES.forEach((line, lineIdx) => {
-        const allDone = line.every(pos => !!playerData.photos[pos]);
-        if (allDone && !completedLines.has(lineIdx)) {
-            completedLines.add(lineIdx);
-            newlyCompleted.push(line);
-        }
-    });
+// ── MODAL ─────────────────────────────────────────────────────────────────────
 
-    // Highlight all completed lines
-    completedLines.forEach(lineIdx => {
-        LINES[lineIdx].forEach(pos => {
-            const cell = document.querySelector(`.bingo-cell[data-pos="${pos}"]`);
-            if (cell) cell.classList.add('highlight-line');
-        });
-    });
-
-    if (newlyCompleted.length > 0) {
-        newlyCompleted.forEach(line => {
-            line.forEach(pos => {
-                const cell = document.querySelector(`.bingo-cell[data-pos="${pos}"]`);
-                if (cell) cell.classList.add('highlight-line');
-            });
-        });
-    }
-}
-
-// --- MODAL ---
-function openModal(cellPos, itemIdx, playerData) {
-    currentCellIndex = cellPos;
-    const item = BINGO_ITEMS[itemIdx];
+function openModal(pos, itemIdx) {
+    currentCell = pos;
+    const item = ITEMS[itemIdx];
     document.getElementById('modal-title').textContent = item.title;
     document.getElementById('modal-desc').textContent = item.desc;
+    document.getElementById('file-input').value = '';
+    document.getElementById('saving-msg').textContent = '';
 
-    const preview = document.getElementById('modal-photo-preview');
-    const status = document.getElementById('modal-status');
-    const uploadLabel = document.getElementById('upload-btn-label');
+    const photoUrl = currentCache.photos && currentCache.photos[pos];
+    const imgEl    = document.getElementById('modal-img');
+    const doneEl   = document.getElementById('modal-done-msg');
+    const labelEl  = document.getElementById('upload-label');
 
-    if (playerData.photos[cellPos]) {
-        preview.src = playerData.photos[cellPos];
-        preview.style.display = 'block';
-        status.style.display = 'block';
-        uploadLabel.textContent = '📷 Replace Photo';
-        uploadLabel.className = 'upload-btn completed-btn';
+    if (photoUrl) {
+        imgEl.src = photoUrl; imgEl.style.display = 'block';
+        doneEl.style.display = 'block';
+        labelEl.textContent = '📷 Replace Photo';
+        labelEl.className = 'upload-label done';
     } else {
-        preview.style.display = 'none';
-        status.style.display = 'none';
-        uploadLabel.textContent = '📷 Upload Photo';
-        uploadLabel.className = 'upload-btn';
+        imgEl.style.display = 'none';
+        doneEl.style.display = 'none';
+        labelEl.textContent = '📷 Upload Photo';
+        labelEl.className = 'upload-label';
     }
 
-    document.getElementById('modal-saving').style.display = 'none';
-    document.getElementById('photo-file-input').value = '';
     document.getElementById('modal-overlay').classList.add('open');
 }
 
 document.getElementById('modal-close').addEventListener('click', () => {
     document.getElementById('modal-overlay').classList.remove('open');
 });
-
 document.getElementById('modal-overlay').addEventListener('click', e => {
-    if (e.target === document.getElementById('modal-overlay')) {
+    if (e.target === document.getElementById('modal-overlay'))
         document.getElementById('modal-overlay').classList.remove('open');
-    }
 });
 
-document.getElementById('photo-file-input').addEventListener('change', async (e) => {
+document.getElementById('file-input').addEventListener('change', async e => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const savingEl = document.getElementById('modal-saving');
-    savingEl.style.display = 'block';
-    savingEl.textContent = 'Saving...';
+    const saving = document.getElementById('saving-msg');
+    saving.textContent = 'Uploading...';
 
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-        const base64 = ev.target.result;
+    try {
+        const itemTitle = ITEMS[currentGrid[currentCell]].title;
+        // Sanitise player name for use in file path
+        const safeName = currentPlayer.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+        const path = `${safeName}/cell_${currentCell}.jpg`;
 
-        // Load existing data
-        const saved = await storageGet(`player-data:${userId}`);
-        const playerData = saved ? JSON.parse(saved.value) : { photos: {} };
+        // Compress for Supabase upload (good quality, reasonable size)
+        const uploadBlob = await compressToBlob(file, 1200, 0.82);
+        saving.textContent = 'Saving to cloud...';
 
-        playerData.photos[currentCellIndex] = base64;
-        playerData.name = playerName;
-        playerData.grid = userGrid;
-        playerData.lastUpdated = new Date().toISOString();
+        const publicUrl = await sbUpload(path, uploadBlob, 'image/jpeg');
 
-        // Save personal data
-        await storageSet(`player-data:${userId}`, JSON.stringify(playerData));
+        if (!publicUrl) {
+            saving.textContent = '❌ Upload failed. Check Supabase bucket policies.';
+            return;
+        }
 
-        // Save to shared admin store
-        await storageSet(`admin-player:${userId}`, JSON.stringify({
-            name: playerName,
-            userId,
-            grid: userGrid,
-            photoKeys: Object.keys(playerData.photos).map(Number)
-        }), true);
+        // Also save a small thumbnail to localStorage cache for instant grid load
+        const thumbUrl = await compressToDataURL(file, 400, 0.70);
+        if (!currentCache.photos) currentCache.photos = {};
+        currentCache.photos[currentCell] = thumbUrl;
+        saveCache(currentPlayer, currentCache);
 
-        // Save individual photo to shared store for admin
-        await storageSet(`admin-photo:${userId}:${currentCellIndex}`, JSON.stringify({
-            name: playerName,
-            cellPos: currentCellIndex,
-            itemTitle: BINGO_ITEMS[userGrid[currentCellIndex]].title,
-            photo: base64,
-            uploadedAt: new Date().toISOString()
-        }), true);
+        // Update modal
+        document.getElementById('modal-img').src = thumbUrl;
+        document.getElementById('modal-img').style.display = 'block';
+        document.getElementById('modal-done-msg').style.display = 'block';
+        document.getElementById('upload-label').textContent = '📷 Replace Photo';
+        document.getElementById('upload-label').className = 'upload-label done';
+        saving.textContent = '✓ Saved!';
 
-        savingEl.textContent = '✓ Saved!';
+        renderGrid();
+        setTimeout(() => { saving.textContent = ''; }, 2000);
 
-        // Update modal UI
-        const preview = document.getElementById('modal-photo-preview');
-        preview.src = base64;
-        preview.style.display = 'block';
-        document.getElementById('modal-status').style.display = 'block';
-        const uploadLabel = document.getElementById('upload-btn-label');
-        uploadLabel.textContent = '📷 Replace Photo';
-        uploadLabel.className = 'upload-btn completed-btn';
-
-        // Re-render grid
-        await renderGrid();
-
-        setTimeout(() => { savingEl.style.display = 'none'; }, 1500);
-    };
-    reader.readAsDataURL(file);
+    } catch(err) {
+        console.error(err);
+        saving.textContent = '❌ Error — please try again.';
+    }
 });
 
-// --- ADMIN ---
-async function showAdminScreen() {
-    document.getElementById('name-screen').style.display = 'none';
-    document.getElementById('admin-screen').style.display = 'block';
+// ── ADMIN ─────────────────────────────────────────────────────────────────────
 
+async function showAdmin() {
+    document.getElementById('admin-screen').classList.add('active');
     const content = document.getElementById('admin-content');
-    content.innerHTML = '<p style="text-align:center;color:#aaa;">Loading all photos...</p>';
 
-    // Get all player keys
-    const playerList = await storageList('admin-player:', true);
-    if (!playerList || !playerList.keys || playerList.keys.length === 0) {
-        content.innerHTML = '<p style="text-align:center;color:#666;font-style:italic;">No photos uploaded yet.</p>';
-        return;
-    }
-
+    // Build summary + photo cards for each player
+    const summaryEl = document.createElement('div');
+    summaryEl.className = 'admin-summary';
     content.innerHTML = '';
+    content.appendChild(summaryEl);
 
-    for (const key of playerList.keys) {
-        const playerRaw = await storageGet(key, true);
-        if (!playerRaw) continue;
-        const player = JSON.parse(playerRaw.value);
+    const cardsContainer = document.createElement('div');
+    content.appendChild(cardsContainer);
 
-        // Get all photos for this player
-        const photoKeys = await storageList(`admin-photo:${player.userId}:`, true);
-        if (!photoKeys || !photoKeys.keys || photoKeys.keys.length === 0) continue;
+    let grandTotal = 0;
 
-        const playerEl = document.createElement('div');
-        playerEl.className = 'admin-player';
-        playerEl.innerHTML = `
-            <h2>${player.name.toUpperCase()}</h2>
-            <div class="admin-stats">${photoKeys.keys.length} photo(s) uploaded</div>
-            <div class="admin-photos-grid" id="photos-${player.userId}"></div>
-        `;
-        content.appendChild(playerEl);
+    for (const name of PLAYERS) {
+        const safeName = name.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+        const files = await sbList(safeName + '/');
 
-        const photosGrid = document.getElementById(`photos-${player.userId}`);
-
-        for (const photoKey of photoKeys.keys) {
-            const photoRaw = await storageGet(photoKey, true);
-            if (!photoRaw) continue;
-            const photoData = JSON.parse(photoRaw.value);
-
-            const item = document.createElement('div');
-            item.className = 'admin-photo-item';
-            item.innerHTML = `
-                <img src="${photoData.photo}" alt="${photoData.itemTitle}" />
-                <div class="admin-photo-label">${photoData.itemTitle}</div>
-            `;
-            photosGrid.appendChild(item);
+        if (!files || files.length === 0) {
+            // Still show in summary with zero
+            const chip = document.createElement('div');
+            chip.className = 'summary-chip';
+            chip.innerHTML = `<div class="sname">${name}</div><div class="sstat"><span class="grn">0</span> photos</div>`;
+            summaryEl.appendChild(chip);
+            continue;
         }
+
+        grandTotal += files.length;
+
+        // Work out how many lines completed using the grid + uploaded cell positions
+        const grid = gridForPlayer(name);
+        const uploadedPositions = new Set(
+            files.map(f => {
+                const m = f.name.match(/cell_(\d+)\.jpg/);
+                return m ? parseInt(m[1]) : -1;
+            }).filter(n => n >= 0)
+        );
+        const linesCompleted = LINES.filter(l => l.every(p => uploadedPositions.has(p))).length;
+
+        // Summary chip
+        const chip = document.createElement('div');
+        chip.className = 'summary-chip';
+        chip.innerHTML = `
+            <div class="sname">${name}</div>
+            <div class="sstat">
+                <span class="grn">${files.length}</span> photo${files.length!==1?'s':''} &nbsp;·&nbsp;
+                <span class="gold">${linesCompleted} line${linesCompleted!==1?'s':''}</span>
+            </div>
+        `;
+        summaryEl.appendChild(chip);
+
+        // Full card
+        const card = document.createElement('div');
+        card.className = 'admin-player-card';
+        card.innerHTML = `
+            <div class="admin-player-name">${name.toUpperCase()}</div>
+            <div class="admin-stats">
+                <span class="grn">${files.length}</span> photo${files.length!==1?'s':''} uploaded &nbsp;·&nbsp;
+                <span class="gold">${linesCompleted} completed line${linesCompleted!==1?'s':''}</span>
+            </div>
+            <div class="admin-photos-grid" id="apg_${safeName}"></div>
+        `;
+        cardsContainer.appendChild(card);
+
+        const photosGrid = card.querySelector('.admin-photos-grid');
+
+        files.forEach(f => {
+            const m = f.name.match(/cell_(\d+)\.jpg/);
+            if (!m) return;
+            const pos = parseInt(m[1]);
+            const itemTitle = ITEMS[grid[pos]] ? ITEMS[grid[pos]].title : '?';
+            const imgUrl = sbPublicUrl(`${safeName}/${f.name}`);
+
+            const pc = document.createElement('div');
+            pc.className = 'admin-photo-card';
+            pc.innerHTML = `
+                <img src="${imgUrl}" alt="${itemTitle}" loading="lazy" />
+                <div class="admin-photo-info">
+                    <div class="admin-photo-title">${itemTitle}</div>
+                    <div class="admin-photo-player">${name}</div>
+                </div>
+            `;
+            pc.querySelector('img').addEventListener('click', () => openLightbox(imgUrl));
+            photosGrid.appendChild(pc);
+        });
     }
 
-    if (content.children.length === 0) {
-        content.innerHTML = '<p style="text-align:center;color:#666;font-style:italic;">No photos uploaded yet.</p>';
+    if (grandTotal === 0) {
+        cardsContainer.innerHTML = '<div class="admin-empty">No photos uploaded yet — check back during the weekend!</div>';
     }
 }
 
+// ── LIGHTBOX ──────────────────────────────────────────────────────────────────
+function openLightbox(url) {
+    document.getElementById('lightbox-img').src = url;
+    document.getElementById('lightbox').classList.add('open');
+}
+document.getElementById('lightbox').addEventListener('click', () => {
+    document.getElementById('lightbox').classList.remove('open');
+});
+
+// ── GO ────────────────────────────────────────────────────────────────────────
 init();
 </script>
 </body>
